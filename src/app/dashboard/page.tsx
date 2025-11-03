@@ -64,12 +64,14 @@ export default function DashboardPage() {
     return Array.from(latestDataMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   };
 
-  const latestUniqueDevices = getLatestDataForDevices();
-
   const isDeviceOnline = (timestamp: string) => {
+    if (!timestamp) return false;
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     return new Date(timestamp) > twoMinutesAgo;
   };
+
+  const latestUniqueDevices = getLatestDataForDevices();
+  const onlineDevicesCount = latestUniqueDevices.filter(device => isDeviceOnline(device.timestamp)).length;
   
   const renderSkeletons = () => (
     Array.from({ length: 4 }).map((_, index) => (
@@ -89,9 +91,26 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold">Live Environmental Dashboard</h1>
-        <p className="text-muted-foreground">Real-time sensor data from all active devices.</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold">Live Environmental Dashboard</h1>
+          <p className="text-muted-foreground">Real-time sensor data from all active devices.</p>
+        </div>
+        {!loading && !error && (
+            <div className="flex items-center gap-3 bg-muted/50 px-4 py-2 rounded-lg">
+                <div className="flex items-center gap-2 text-green-500 font-semibold">
+                    <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                    <span>{onlineDevicesCount} Online</span>
+                </div>
+                <span className="text-muted-foreground">/</span>
+                <div className="text-muted-foreground font-semibold">
+                    <span>{latestUniqueDevices.length} Total</span>
+                </div>
+            </div>
+        )}
       </div>
       
       {error && (
