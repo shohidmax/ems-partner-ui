@@ -49,10 +49,23 @@ export function LoginForm() {
         router.push('/dashboard');
         router.refresh();
       } catch (error: any) {
-        console.error('Login error:', error);
+        console.error('Login error:', error.code, error.message);
+        let description = 'An unexpected error occurred. Please try again.';
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            description = 'Invalid email or password. Please check your credentials and try again.';
+            break;
+          case 'auth/too-many-requests':
+            description = 'Too many login attempts. Please try again later.';
+            break;
+          default:
+            description = error.message;
+        }
         toast({
-          title: 'Error logging in',
-          description: error.message,
+          title: 'Login Failed',
+          description: description,
           variant: 'destructive',
         });
       }
