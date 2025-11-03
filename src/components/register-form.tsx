@@ -59,11 +59,11 @@ export function RegisterForm() {
             createdAt: new Date(),
         });
 
-        router.push('/dashboard');
+        router.push('/login');
         router.refresh();
         toast({
           title: 'Account created',
-          description: 'Welcome to AuthZen!',
+          description: 'Please login to continue.',
         });
 
       } catch (error: any) {
@@ -93,8 +93,12 @@ export function RegisterForm() {
                 createdAt: new Date(),
             }, { merge: true });
 
-            router.push('/dashboard');
+            router.push('/login');
             router.refresh();
+            toast({
+              title: 'Account created',
+              description: 'Please login to continue.',
+            });
         } catch (error: any) {
             console.error('Google Sign-In error:', error);
             toast({
