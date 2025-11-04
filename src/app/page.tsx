@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
           <Logo />
           <div className="flex items-center gap-2">
             {isLoading ? null : user ? (
@@ -54,7 +54,7 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="container grid items-center gap-8 pb-8 pt-16 md:py-24 lg:py-32">
+        <section className="container grid items-center gap-8 pb-8 pt-16 md:py-24 lg:py-32 px-4 md:px-6">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -111,7 +111,7 @@ export default function Home() {
       </main>
 
       <footer className="border-t">
-        <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
+        <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0 px-4 md:px-6">
           <div className="flex items-center gap-2">
             <Logo />
           </div>
