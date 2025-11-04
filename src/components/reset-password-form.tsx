@@ -13,15 +13,19 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Mail } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { Mail, Loader2 } from 'lucide-react';
+import { useTransition } from 'react';
+import { auth } from '@/lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
 });
 
 export function ResetPasswordForm() {
-    const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -31,9 +35,22 @@ export function ResetPasswordForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    startTransition(() => {
-        // In a real app, you'd call a server action here to send a reset link.
-        console.log('Sending password reset link to:', values.email);
+    startTransition(async () => {
+      try {
+        await sendPasswordResetEmail(auth, values.email);
+        toast({
+          title: 'Password Reset Email Sent',
+          description: 'Check your inbox for a link to reset your password.',
+        });
+        form.reset();
+      } catch (error: any) {
+        console.error('Password reset error:', error);
+        toast({
+          title: 'Error Sending Reset Email',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
     });
   }
 
@@ -57,7 +74,8 @@ export function ResetPasswordForm() {
           )}
         />
         <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Sending...' : 'Send Reset Link'}
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isPending ? 'Sending...' : 'Send Reset Link'}
         </Button>
       </form>
     </Form>
