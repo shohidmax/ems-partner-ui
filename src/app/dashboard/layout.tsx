@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Home, User, Settings, LogOut, PanelLeft, Loader2, Sun, Moon } from 'lucide-react';
+import { Home, User, Settings, LogOut, PanelLeft, Loader2, Sun, Moon, List } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
@@ -84,10 +84,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Dashboard">
+                <SidebarMenuButton asChild tooltip="Overview">
                   <Link href="/dashboard">
                     <Home />
-                    <span>Dashboard</span>
+                    <span>Overview</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Device List">
+                  <Link href="/dashboard/devices">
+                    <List />
+                    <span>Device List</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
