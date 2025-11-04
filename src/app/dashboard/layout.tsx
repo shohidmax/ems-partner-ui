@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   SidebarProvider,
   Sidebar,
@@ -101,9 +100,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Settings">
-                  <Settings />
-                  <span>Settings</span>
+                <SidebarMenuButton asChild tooltip="Settings">
+                  <Link href="/dashboard/settings">
+                    <Settings />
+                    <span>Settings</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -150,7 +151,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Link href="/dashboard/profile"><User className="mr-2 h-4 w-4" />Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="#"><Settings className="mr-2 h-4 w-4" />Settings</Link>
+                  <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

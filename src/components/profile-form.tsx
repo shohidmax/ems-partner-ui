@@ -16,8 +16,6 @@ import { Input } from '@/components/ui/input';
 import { User, Mail, Loader2 } from 'lucide-react';
 import { useTransition } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { PasswordChangeForm } from './password-change-form';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { updateProfile } from 'firebase/auth';
@@ -131,8 +129,6 @@ export function ProfileForm() {
           </Button>
         </form>
       </Form>
-      <Separator />
-      <PasswordChangeForm />
     </div>
   );
 }
