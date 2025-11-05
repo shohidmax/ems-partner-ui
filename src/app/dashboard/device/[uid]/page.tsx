@@ -181,7 +181,7 @@ export default function DeviceDetailsPage() {
     if (!token || !uid) return;
      try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        const infoResponse = await fetch(`${API_URL_BASE}/device/list`, { headers });
+        const infoResponse = await fetch(`${API_URL_BASE}/user/devices`, { headers });
         if (infoResponse.ok) {
             const devices: DeviceInfo[] = await infoResponse.json();
             const currentDevice = devices.find(d => d.uid === uid);

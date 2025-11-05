@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://espserver3.onrender.com/api/device/list';
+const API_URL = 'https://espserver3.onrender.com/api/user/devices';
 
 interface DeviceInfo {
   uid: string;

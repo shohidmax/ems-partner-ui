@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-const API_URL = 'https://espserver3.onrender.com/api/device/list';
+const API_URL = 'https://espserver3.onrender.com/api/user/devices';
 
 interface DeviceInfo {
   uid: string;
