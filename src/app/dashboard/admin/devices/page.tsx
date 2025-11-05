@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_URL = 'https://espserver3.onrender.com/api';
+const API_BASE_URL = 'https://espserver3.onrender.com/api';
 
 interface DeviceOwner {
     name: string;
@@ -40,7 +40,7 @@ export default function AdminDeviceManagerPage() {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No auth token found.');
 
-      const response = await fetch(`${API_URL}/admin/devices`, {
+      const response = await fetch(`${API_BASE_URL}/admin/devices`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
@@ -73,7 +73,7 @@ export default function AdminDeviceManagerPage() {
     try {
       const token = localStorage.getItem('token');
       const { uid, name, location } = editingDevice;
-      const response = await fetch(`${API_URL}/device/${uid}`, {
+      const response = await fetch(`${API_BASE_URL}/device/${uid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
