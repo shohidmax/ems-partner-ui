@@ -38,6 +38,12 @@ export function useUser() {
   const pathname = usePathname();
   const { toast } = useToast();
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setToken(null);
+    setIsAdmin(false);
+  }, []);
 
   const fetchUserProfile = useCallback(async () => {
     const tokenToVerify = localStorage.getItem('token');
@@ -60,17 +66,19 @@ export function useUser() {
         console.warn('Full profile refetch failed:', error);
         logout();
     }
-  }, []);
+  }, [logout]);
 
   const verifyTokenAndSetUser = useCallback(async (tokenToVerify: string | null) => {
     if (!tokenToVerify) {
-      logout(); // Also clears user state
+      logout();
+      setIsLoading(false);
       return false;
     }
     try {
       const decoded: UserPayload = jwtDecode(tokenToVerify);
       if (decoded.exp * 1000 < Date.now()) {
         logout();
+        setIsLoading(false);
         return false;
       }
       
@@ -84,33 +92,29 @@ export function useUser() {
           setToken(tokenToVerify);
           const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ADMIN_EMAIL;
           setIsAdmin(fullProfile.email === adminEmail || !!fullProfile.isAdmin);
+          setIsLoading(false);
           return true;
       } else {
-          // If fetching profile fails, token is invalid or backend is down.
           logout();
+          setIsLoading(false);
           return false;
       }
 
     } catch (error) {
       console.error('Invalid token or failed to fetch profile:', error);
       logout();
+      setIsLoading(false);
       return false;
     }
-  }, []);
+  }, [logout]);
 
 
   useEffect(() => {
-    const initializeUser = async () => {
-        setIsLoading(true);
-        const tokenFromStorage = localStorage.getItem('token');
-        await verifyTokenAndSetUser(tokenFromStorage);
-        setIsLoading(false);
-    };
-    initializeUser();
+    const tokenFromStorage = localStorage.getItem('token');
+    verifyTokenAndSetUser(tokenFromStorage);
   }, [verifyTokenAndSetUser]);
   
   useEffect(() => {
-    // This effect handles redirection and should only run when loading is finished.
     if (isLoading) {
       return;
     }
@@ -118,21 +122,16 @@ export function useUser() {
     const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/reset-password';
     const isDashboardPage = pathname.startsWith('/dashboard');
 
-    if (user) {
-      // If user is logged in, redirect away from auth pages
-      if (isAuthPage) {
-        router.replace('/dashboard');
-      }
-    } else {
-      // If user is not logged in, redirect to login from protected pages
-      if (isDashboardPage) {
-        router.replace('/login');
-      }
+    if (user && isAuthPage) {
+      router.replace('/dashboard');
+    } else if (!user && isDashboardPage) {
+      router.replace('/login');
     }
   }, [user, isLoading, pathname, router]);
 
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
@@ -146,18 +145,13 @@ export function useUser() {
         await verifyTokenAndSetUser(data.token);
         return true;
       }
+      setIsLoading(false);
       return false;
     } catch (error) {
       console.error('Login error:', error);
+      setIsLoading(false);
       return false;
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    setToken(null);
-    setIsAdmin(false);
   };
 
 
