@@ -9,13 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Copy, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddDeviceDialog } from "@/components/add-device-dialog";
 
 export default function ProfilePage() {
   const { user, isLoading, fetchUserProfile } = useUser();
   const { toast } = useToast();
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      console.log('User Profile JSON:', JSON.stringify(user, null, 2));
+    }
+  }, [user]);
 
   const handleCopy = (uid: string) => {
     navigator.clipboard.writeText(uid);
