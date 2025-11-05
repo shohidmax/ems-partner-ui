@@ -98,14 +98,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Device List">
-                  <Link href="/dashboard/devices">
-                    <List />
-                    <span>Device List</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {isAdmin && (
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Device List">
+                    <Link href="/dashboard/devices">
+                        <List />
+                        <span>Device List</span>
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               
                <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Profile">
