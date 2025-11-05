@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
-import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save } from 'lucide-react';
+import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
@@ -117,6 +117,9 @@ export default function DeviceDetailsPage() {
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [appliedStartDate, setAppliedStartDate] = useState('');
+  const [appliedEndDate, setAppliedEndDate] = useState('');
+
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   
@@ -127,17 +130,17 @@ export default function DeviceDetailsPage() {
   const [activePieIndex, setActivePieIndex] = useState(0);
 
   const filteredData = useMemo(() => {
-    if (!startDate && !endDate) {
+    if (!appliedStartDate && !appliedEndDate) {
       return deviceHistory;
     }
-    const start = startDate ? new Date(startDate).getTime() : -Infinity;
-    const end = endDate ? new Date(endDate).getTime() : Infinity;
+    const start = appliedStartDate ? new Date(appliedStartDate).getTime() : -Infinity;
+    const end = appliedEndDate ? new Date(appliedEndDate).getTime() : Infinity;
     
     return deviceHistory.filter(d => {
         const timestamp = new Date(d.timestamp).getTime();
         return timestamp >= start && timestamp <= end;
     });
-}, [deviceHistory, startDate, endDate]);
+  }, [deviceHistory, appliedStartDate, appliedEndDate]);
 
   const latestData = useMemo(() => {
     if (filteredData.length === 0) return null;
@@ -226,9 +229,16 @@ export default function DeviceDetailsPage() {
     }
   }, []);
   
+  const applyFilters = () => {
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+  };
+
   const resetFilters = () => {
     setStartDate('');
     setEndDate('');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
   };
 
   const handleSave = async () => {
@@ -488,6 +498,7 @@ export default function DeviceDetailsPage() {
                 <Input id="end-date" type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </div>
             <div className="flex gap-2 w-full md:w-auto">
+              <Button onClick={applyFilters}><Filter className="mr-2 h-4 w-4"/>Filter</Button>
               <Button onClick={resetFilters} variant="ghost" className="w-full">Reset</Button>
             </div>
           </div>
@@ -589,7 +600,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-    
-
-    
