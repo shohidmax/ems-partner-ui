@@ -8,7 +8,7 @@ import { TriangleAlert, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_URL = 'http://192.168.0.11:3005/api/device/data';
+const API_URL = 'http://localhost:3005/api/device/data';
 
 interface DeviceData {
   uid: string;
@@ -193,5 +193,3 @@ export default function DeviceListPage() {
     </div>
   );
 }
-
-    
