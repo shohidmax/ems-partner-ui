@@ -18,7 +18,7 @@ import { Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/user/change-password'; // Example endpoint
+const API_URL = 'https://espserver3.onrender.com/api/user/change-password'; // Example endpoint
 
 const formSchema = z.object({
   currentPassword: z.string().min(1, { message: 'Current password is required.' }),

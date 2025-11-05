@@ -19,7 +19,7 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/user/register';
+const API_URL = 'https://espserver3.onrender.com/api/user/register';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),

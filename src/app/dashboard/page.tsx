@@ -8,7 +8,7 @@ import { TriangleAlert, Copy, List, BarChart, Thermometer, Droplets, CloudRain }
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/device/data';
+const API_URL = 'https://espserver3.onrender.com/api/device/data';
 
 interface DeviceData {
   uid: string;

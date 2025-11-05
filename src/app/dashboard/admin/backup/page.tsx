@@ -8,7 +8,7 @@ import { Download, Loader2, TriangleAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/backup';
+const API_URL = 'https://espserver3.onrender.com/api/backup';
 
 interface JobStatus {
     status: 'pending' | 'counting' | 'exporting' | 'zipping' | 'done' | 'error';
@@ -169,7 +169,7 @@ export default function BackupPage() {
 
                         {downloadUrl && jobStatus?.status === 'done' && (
                             <Button asChild className="w-full">
-                                <a href={`https://esp-web-server2.onrender.com${downloadUrl}`} download>
+                                <a href={`https://espserver3.onrender.com${downloadUrl}`} download>
                                     <Download className="mr-2 h-4 w-4" />
                                     Download Backup
                                 </a>

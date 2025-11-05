@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api';
+const API_URL = 'https://espserver3.onrender.com/api';
 
 interface DeviceOwner {
     name: string;

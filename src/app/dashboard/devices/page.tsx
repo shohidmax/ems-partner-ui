@@ -8,8 +8,8 @@ import { TriangleAlert, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/device/list';
-const API_DATA_URL = 'https://esp-web-server2.onrender.com/api/device/data';
+const API_URL = 'https://espserver3.onrender.com/api/device/list';
+const API_DATA_URL = 'https://espserver3.onrender.com/api/device/data';
 
 
 interface DeviceInfo {

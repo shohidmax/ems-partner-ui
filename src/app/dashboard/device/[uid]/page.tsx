@@ -16,7 +16,7 @@ import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
 
-const API_URL_BASE = 'https://esp-web-server2.onrender.com/api/device';
+const API_URL_BASE = 'https://espserver3.onrender.com/api/device';
 
 interface DeviceData {
   uid: string;

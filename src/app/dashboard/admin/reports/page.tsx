@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/admin/report';
+const API_URL = 'https://espserver3.onrender.com/api/admin/report';
 
 type ReportPeriod = 'daily' | 'monthly' | 'yearly';
 

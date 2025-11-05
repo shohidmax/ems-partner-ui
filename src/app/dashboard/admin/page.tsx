@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download } from 'lucide-react';
 import Link from 'next/link';
 
-const API_URL = 'https://esp-web-server2.onrender.com';
+const API_URL = 'https://espserver3.onrender.com';
 
 interface AdminStats {
   totalDevices: number;
