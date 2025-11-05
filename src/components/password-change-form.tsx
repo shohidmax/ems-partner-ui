@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -17,6 +16,9 @@ import { Input } from '@/components/ui/input';
 import { useTransition } from 'react';
 import { Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/hooks/use-user';
+
+const API_URL = 'http://localhost:3005/api/user/change-password'; // Example endpoint
 
 const formSchema = z.object({
   currentPassword: z.string().min(1, { message: 'Current password is required.' }),
@@ -26,6 +28,7 @@ const formSchema = z.object({
 export function PasswordChangeForm() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { token } = useUser();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,20 +41,30 @@ export function PasswordChangeForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        // In a real app, you'd call a server action here to update the password.
-        console.log('Updating password...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log(values);
+        if (!token) throw new Error("You are not logged in.");
+
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(values)
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "Failed to change password.");
+
         toast({
           title: 'Success',
-          description: 'Your password has been updated.',
+          description: 'Your password has been updated. This is a demo; no password was changed.',
         });
         form.reset();
       } catch (error: any) {
         console.error('Password update error:', error);
         toast({
           title: 'Error updating password',
-          description: error.message,
+          description: "This is a demo. Your backend may not have this feature implemented.",
           variant: 'destructive',
         });
       }
@@ -61,7 +74,7 @@ export function PasswordChangeForm() {
   return (
     <div>
       <h3 className="text-lg font-medium">Change Password</h3>
-      <p className="text-sm text-muted-foreground mb-4">Update your password here.</p>
+      <p className="text-sm text-muted-foreground mb-4">Update your password here. (This is a non-functional demo)</p>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <FormField

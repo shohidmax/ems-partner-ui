@@ -8,8 +8,19 @@ import { TriangleAlert, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_URL = 'http://localhost:3005/api/device/data';
+const API_URL = 'http://localhost:3005/api/device/list';
+const API_DATA_URL = 'http://localhost:3005/api/device/data';
 
+
+interface DeviceInfo {
+  uid: string;
+  name: string | null;
+  location: string | null;
+  status: 'online' | 'offline' | 'unknown';
+  lastSeen: string | null;
+}
+
+// Data from the old endpoint, to be merged
 interface DeviceData {
   uid: string;
   temperature: number | null;
@@ -18,8 +29,10 @@ interface DeviceData {
   timestamp: string;
 }
 
+
 export default function DeviceListPage() {
-  const [data, setData] = useState<DeviceData[]>([]);
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [deviceData, setDeviceData] = useState<DeviceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -35,25 +48,38 @@ export default function DeviceListPage() {
   };
 
   const fetchData = async () => {
+    // We don't reset loading to true on polls to avoid skeleton flickers
+    // setLoading(true) 
     try {
-      const response = await fetch(API_URL, { mode: 'cors', cache: 'no-cache' });
-      if (!response.ok) {
-        throw new Error(`Network response was not ok. Status: ${response.status}`);
+      // Fetch device list from the new endpoint
+      const listResponse = await fetch(API_URL, { mode: 'cors', cache: 'no-cache' });
+      if (!listResponse.ok) {
+        throw new Error(`Failed to fetch device list. Status: ${listResponse.status}`);
       }
-      const jsonData = await response.json();
-      const processedData = jsonData.map((d: any) => ({
+      const deviceList: DeviceInfo[] = await listResponse.json();
+      
+      // Fetch latest data from the old endpoint to get sensor readings
+      const dataResponse = await fetch(API_DATA_URL, { mode: 'cors', cache: 'no-cache' });
+       if (!dataResponse.ok) {
+        throw new Error(`Failed to fetch device sensor data. Status: ${dataResponse.status}`);
+      }
+      const rawDeviceData: DeviceData[] = await dataResponse.json();
+
+      const processedData = rawDeviceData.map((d: any) => ({
         ...d,
         temperature: (d.temperature === 85 || typeof d.temperature !== 'number') ? null : d.temperature,
         water_level: (typeof d.water_level !== 'number') ? 0 : d.water_level,
         rainfall: (typeof d.rainfall !== 'number') ? 0 : d.rainfall,
         timestamp: d.timestamp && !d.timestamp.startsWith('1970-') ? d.timestamp : null
       })).filter((d: any) => d.timestamp);
-      
-      setData(processedData);
+
+      setDevices(deviceList);
+      setDeviceData(processedData);
       setError(null);
+
     } catch (e: any) {
       console.error('Failed to fetch data:', e);
-      setError('Failed to fetch live data. The server might be offline. Please try again later.');
+      setError('Failed to fetch live data. The server might be offline or an error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -65,26 +91,15 @@ export default function DeviceListPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const getLatestDataForDevices = (): DeviceData[] => {
-    const latestDataMap = new Map<string, DeviceData>();
-    data.forEach(device => {
-      if (!device.uid || !device.timestamp) return;
-      const existing = latestDataMap.get(device.uid);
-      if (!existing || new Date(device.timestamp) > new Date(existing.timestamp)) {
-        latestDataMap.set(device.uid, device);
-      }
-    });
-    return Array.from(latestDataMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  };
+  const getLatestDataForDevice = (uid: string): Partial<DeviceData> => {
+    const deviceHistory = deviceData
+      .filter(d => d.uid === uid)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return deviceHistory.length > 0 ? deviceHistory[0] : {};
+  }
 
-  const isDeviceOnline = (timestamp: string) => {
-    if (!timestamp) return false;
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-    return new Date(timestamp) > twoMinutesAgo;
-  };
 
-  const latestUniqueDevices = getLatestDataForDevices();
-  const onlineDevicesCount = latestUniqueDevices.filter(device => isDeviceOnline(device.timestamp)).length;
+  const onlineDevicesCount = devices.filter(device => device.status === 'online').length;
   
   const renderSkeletons = () => (
     Array.from({ length: 4 }).map((_, index) => (
@@ -120,7 +135,7 @@ export default function DeviceListPage() {
                 </div>
                 <span className="text-muted-foreground">/</span>
                 <div className="text-muted-foreground font-semibold">
-                    <span>{latestUniqueDevices.length} Total</span>
+                    <span>{devices.length} Total</span>
                 </div>
             </div>
         )}
@@ -136,16 +151,18 @@ export default function DeviceListPage() {
       <TooltipProvider>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {loading ? renderSkeletons() : 
-            latestUniqueDevices.length > 0 ? (
-              latestUniqueDevices.map((device) => (
+            devices.length > 0 ? (
+              devices.map((device) => {
+                const latestData = getLatestDataForDevice(device.uid);
+                return (
                 <Link href={`/dashboard/device/${device.uid}`} key={device.uid} className="block group">
                   <Card className="h-full transition-all duration-300 ease-in-out group-hover:shadow-primary/20 group-hover:shadow-lg group-hover:-translate-y-1">
                     <CardHeader className="relative">
-                      <div className={`absolute top-4 right-4 flex items-center gap-2 text-xs font-semibold ${isDeviceOnline(device.timestamp) ? 'text-green-500' : 'text-muted-foreground'}`}>
-                        <span className={`h-2 w-2 rounded-full ${isDeviceOnline(device.timestamp) ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></span>
-                        {isDeviceOnline(device.timestamp) ? 'Online' : 'Offline'}
+                      <div className={`absolute top-4 right-4 flex items-center gap-2 text-xs font-semibold ${device.status === 'online' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                        <span className={`h-2 w-2 rounded-full ${device.status === 'online' ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></span>
+                        {device.status}
                       </div>
-                      <CardTitle className="text-primary pr-16">Device</CardTitle>
+                      <CardTitle className="text-primary pr-16">{device.name || 'Device'}</CardTitle>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div
@@ -160,33 +177,34 @@ export default function DeviceListPage() {
                           <p>Click to copy UID</p>
                         </TooltipContent>
                       </Tooltip>
+                       {device.location && <CardDescription className="text-xs">{device.location}</CardDescription>}
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
                         <span className="font-medium text-sm">Temperature</span>
                         <span className="text-xl font-bold text-amber-500">
-                          {device.temperature !== null ? `${device.temperature.toFixed(1)} °C` : 'N/A'}
+                          {latestData.temperature !== null && latestData.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
                         <span className="font-medium text-sm">Water Level</span>
                         <span className="text-xl font-bold text-sky-500">
-                          {device.water_level.toFixed(2)} m
+                          {latestData.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
                         <span className="font-medium text-sm">Daily Rainfall</span>
                         <span className="text-xl font-bold text-emerald-500">
-                          {device.rainfall.toFixed(2)} mm
+                          {latestData.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground pt-2">Last updated: {new Date(device.timestamp).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground pt-2">Last updated: {device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never'}</p>
                     </CardContent>
                   </Card>
                 </Link>
-              ))
+              )})
             ) : (
-              !error && <p className="col-span-full text-center text-muted-foreground">No device data found.</p>
+              !error && <p className="col-span-full text-center text-muted-foreground">No devices found.</p>
             )}
         </div>
       </TooltipProvider>

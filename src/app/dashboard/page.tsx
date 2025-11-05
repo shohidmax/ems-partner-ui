@@ -217,10 +217,9 @@ export default function DashboardPage() {
                         <List className="h-8 w-8 text-primary" />
                         <p className="mt-2 text-sm font-semibold">View All Devices</p>
                     </Link>
-                    <Link href="/dashboard/profile" className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                    <Link href="/dashboard/admin/reports" className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
                         <BarChart className="h-8 w-8 text-primary" />
                         <p className="mt-2 text-sm font-semibold">Reports & Analytics</p>
-                         <p className="text-xs text-muted-foreground">(Coming Soon)</p>
                     </Link>
                 </CardContent>
             </Card>

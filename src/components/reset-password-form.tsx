@@ -15,8 +15,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Mail, Loader2 } from 'lucide-react';
 import { useTransition } from 'react';
-import { auth } from '@/lib/firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -37,10 +35,13 @@ export function ResetPasswordForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        await sendPasswordResetEmail(auth, values.email);
+        // In a real app, you would call your backend or Firebase here.
+        console.log("Sending password reset for:", values.email);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         toast({
-          title: 'Password Reset Email Sent',
-          description: 'Check your inbox for a link to reset your password.',
+          title: 'Password Reset Email Sent (Demo)',
+          description: 'If this were a real app, an email would be on its way to you.',
         });
         form.reset();
       } catch (error: any) {

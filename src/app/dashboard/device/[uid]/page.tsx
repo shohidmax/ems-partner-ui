@@ -13,8 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
-const API_URL = 'http://localhost:3005/api/device/data';
+
+const API_URL_BASE = 'http://localhost:3005/api/device';
 
 interface DeviceData {
   uid: string;
@@ -46,7 +48,7 @@ export default function DeviceDetailsPage() {
   const params = useParams();
   const uid = params.uid as string;
 
-  const [allData, setAllData] = useState<DeviceData[]>([]);
+  const [deviceHistory, setDeviceHistory] = useState<DeviceData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,26 +57,15 @@ export default function DeviceDetailsPage() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
 
-  const deviceHistory = useMemo(() => {
-    return allData
-      .filter(d => d.uid === uid && d.timestamp)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }, [allData, uid]);
-
   const latestData = useMemo(() => {
-    return deviceHistory.length > 0 ? deviceHistory[deviceHistory.length - 1] : null;
+    const sorted = [...deviceHistory].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return sorted.length > 0 ? sorted[0] : null;
   }, [deviceHistory]);
 
   const filteredData = useMemo(() => {
-    let data = deviceHistory;
-    if (startDate) {
-      data = data.filter(d => new Date(d.timestamp) >= new Date(startDate));
-    }
-    if (endDate) {
-      data = data.filter(d => new Date(d.timestamp) <= new Date(endDate));
-    }
-    return data;
-  }, [deviceHistory, startDate, endDate]);
+    // Data from API is now sorted by timestamp ASC
+    return deviceHistory;
+  }, [deviceHistory]);
 
   const pieChartData = useMemo(() => {
     if (filteredData.length === 0) return [];
@@ -96,10 +87,27 @@ export default function DeviceDetailsPage() {
   const PIE_COLORS = ['#fbbf24', '#38bdf8', '#34d399'];
 
 
-  const fetchData = async () => {
+  const fetchData = async (start?: string, end?: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`${API_URL}?uid=${uid}`, { mode: 'cors', cache: 'no-cache' });
+      let response;
+      let url;
+      let options: RequestInit = { mode: 'cors', cache: 'no-cache' };
+
+      if (start && end) {
+        url = `${API_URL_BASE}/data-by-range`;
+        options.method = 'POST';
+        options.headers = { 'Content-Type': 'application/json' };
+        options.body = JSON.stringify({ uid, start, end, limit: 10000 });
+      } else {
+        url = `${API_URL_BASE}/data?uid=${uid}&limit=1000`;
+      }
+      
+      response = await fetch(url, options);
+
       if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
+      
       const jsonData = await response.json();
       const processedData = jsonData.map((d: any) => ({
         ...d,
@@ -108,57 +116,47 @@ export default function DeviceDetailsPage() {
         rainfall: (typeof d.rainfall !== 'number') ? 0 : d.rainfall,
         timestamp: d.timestamp && !d.timestamp.startsWith('1970-') ? d.timestamp : null
       })).filter((d: any) => d.timestamp);
-      setAllData(processedData);
-      setError(null);
+      
+      setDeviceHistory(processedData);
     } catch (e: any) {
       console.error('Failed to fetch data:', e);
-      setError('Failed to fetch live data. The server might be offline. Please try again later.');
+      setError('Failed to fetch device data. The server might be offline. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
+
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
   }, [uid]);
   
   useEffect(() => {
-    QRCode.toDataURL(window.location.href)
-      .then(url => setQrCodeUrl(url))
-      .catch(err => console.error(err));
+    if (typeof window !== 'undefined') {
+        QRCode.toDataURL(window.location.href)
+        .then(url => setQrCodeUrl(url))
+        .catch(err => console.error(err));
+    }
   }, []);
   
-  const formatDateTimeLocal = (date: Date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
+  const handleFilter = () => {
+    if (startDate && endDate) {
+      fetchData(startDate, endDate);
+    }
+  }
 
-  const setQuickFilter = (minutes: number) => {
-    const now = new Date();
-    const startTime = new Date(now.getTime() - minutes * 60 * 1000);
-    setStartDate(formatDateTimeLocal(startTime));
-    setEndDate(formatDateTimeLocal(now));
-  };
-  
   const resetFilters = () => {
     setStartDate('');
     setEndDate('');
+    fetchData();
   };
 
   const downloadPDF = async () => {
     setIsPdfLoading(true);
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageMargin = 15;
-    const pageWidth = pdf.internal.pageSize.getWidth() - 2 * pageMargin;
     let currentY = pageMargin;
 
-    // Header
     pdf.setFontSize(18);
     pdf.setFont('helvetica', 'bold');
     pdf.text('Environmental Monitoring System Report', pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
@@ -168,23 +166,20 @@ export default function DeviceDetailsPage() {
     pdf.text(`Device UID: ${uid}`, pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
     currentY += 15;
 
-    // Summary
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
     pdf.text('Summary', pageMargin, currentY);
     currentY += 8;
     
-    const summaryData = [
-      ["Last Updated:", latestData ? new Date(latestData.timestamp).toLocaleString() : 'N/A'],
-      ["Latest Temperature:", latestData?.temperature !== null ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
-      ["Latest Water Level:", `${latestData?.water_level?.toFixed(2)} m`],
-      ["Latest Rainfall:", `${latestData?.rainfall?.toFixed(2)} mm`],
-      ["Filter Start:", startDate ? new Date(startDate).toLocaleString() : 'All'],
-      ["Filter End:", endDate ? new Date(endDate).toLocaleString() : 'All'],
-    ];
-
     (pdf as any).autoTable({
-        body: summaryData,
+        body: [
+            ["Last Updated:", latestData ? new Date(latestData.timestamp).toLocaleString() : 'N/A'],
+            ["Latest Temperature:", latestData?.temperature !== null ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
+            ["Latest Water Level:", `${latestData?.water_level?.toFixed(2)} m`],
+            ["Latest Rainfall:", `${latestData?.rainfall?.toFixed(2)} mm`],
+            ["Filter Start:", startDate ? new Date(startDate).toLocaleString() : 'All'],
+            ["Filter End:", endDate ? new Date(endDate).toLocaleString() : 'All'],
+        ],
         startY: currentY,
         theme: 'plain',
         styles: { fontSize: 10, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 0 } },
@@ -193,18 +188,17 @@ export default function DeviceDetailsPage() {
     
     currentY = (pdf as any).lastAutoTable.finalY + 15;
 
-    // Add Charts
     const addChartToPdf = async (chartSelector: string, title: string) => {
         const chartEl = document.querySelector<HTMLElement>(chartSelector);
         if (chartEl) {
-          const { default: html2canvas } = await import('html2canvas');
           const canvas = await html2canvas(chartEl, { backgroundColor: '#ffffff' });
           const imgData = canvas.toDataURL('image/png');
           const imgProps = pdf.getImageProperties(imgData);
           const aspectRatio = imgProps.height / imgProps.width;
-          let imgHeight = pageWidth * aspectRatio;
-          let imgWidth = pageWidth;
-          if (imgHeight > 100) { // Max height for chart
+          let imgWidth = pdf.internal.pageSize.getWidth() - 2 * pageMargin;
+          let imgHeight = imgWidth * aspectRatio;
+          
+          if (imgHeight > 100) {
               imgHeight = 100;
               imgWidth = imgHeight / aspectRatio;
           }
@@ -227,8 +221,7 @@ export default function DeviceDetailsPage() {
     await addChartToPdf('#line-chart-container', 'Sensor History');
     await addChartToPdf('#pie-chart-container', 'Averages (Filtered)');
     
-    // Data Table
-    if (currentY > pdf.internal.pageSize.getHeight() - 50) { // Check if space for table header
+    if (currentY > pdf.internal.pageSize.getHeight() - 50) {
         pdf.addPage();
         currentY = pageMargin;
     }
@@ -256,7 +249,7 @@ export default function DeviceDetailsPage() {
     setIsPdfLoading(false);
   };
   
-  if (loading) {
+  if (loading && deviceHistory.length === 0) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
@@ -273,7 +266,7 @@ export default function DeviceDetailsPage() {
     );
   }
 
-  if (!latestData) {
+  if (!latestData && !loading) {
     return (
         <div className="m-auto text-center">
             <Alert>
@@ -281,7 +274,7 @@ export default function DeviceDetailsPage() {
               <AlertTitle>No Data Found</AlertTitle>
               <AlertDescription>No historical data could be found for this device (UID: {uid}).</AlertDescription>
             </Alert>
-            <Button onClick={() => router.push('/dashboard')} className="mt-4" variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Button>
+            <Button onClick={() => router.push('/dashboard/devices')} className="mt-4" variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Button>
         </div>
     );
   }
@@ -289,7 +282,7 @@ export default function DeviceDetailsPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <Button onClick={() => router.push('/dashboard')} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Button>
+        <Button onClick={() => router.push('/dashboard/devices')} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back to Device List</Button>
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm"><QrCode className="mr-2 h-4 w-4" />Share / View on Phone</Button>
@@ -313,10 +306,10 @@ export default function DeviceDetailsPage() {
 
       <Card>
         <CardContent className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-          <div><p className="text-sm text-muted-foreground">Last Updated</p><p className="font-semibold text-lg">{new Date(latestData.timestamp).toLocaleString()}</p></div>
-          <div><p className="text-sm text-muted-foreground">Temperature</p><p className="font-bold text-2xl text-amber-500">{latestData.temperature !== null ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData.water_level.toFixed(2)} m</p></div>
-          <div><p className="text-sm text-muted-foreground">Daily Rainfall</p><p className="font-bold text-2xl text-emerald-500">{latestData.rainfall.toFixed(2)} mm</p></div>
+          <div><p className="text-sm text-muted-foreground">Last Updated</p><p className="font-semibold text-lg">{latestData ? new Date(latestData.timestamp).toLocaleString() : 'N/A'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Temperature</p><p className="font-bold text-2xl text-amber-500">{latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Daily Rainfall</p><p className="font-bold text-2xl text-emerald-500">{latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}</p></div>
         </CardContent>
       </Card>
 
@@ -325,11 +318,6 @@ export default function DeviceDetailsPage() {
           <CardTitle>Filter History</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap justify-center gap-2">
-            {[5, 10, 30, 60, 12 * 60, 24 * 60].map(min => (
-              <Button key={min} variant="outline" size="sm" onClick={() => setQuickFilter(min)}>Last {min >= 60 ? `${min/60}h` : `${min}m`}</Button>
-            ))}
-          </div>
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="grid w-full gap-1.5">
                 <label htmlFor="start-date" className="text-sm font-medium">Start Date/Time</label>
@@ -339,7 +327,10 @@ export default function DeviceDetailsPage() {
                 <label htmlFor="end-date" className="text-sm font-medium">End Date/Time</label>
                 <Input id="end-date" type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </div>
-            <Button onClick={resetFilters} variant="ghost">Reset</Button>
+            <div className="flex gap-2 w-full md:w-auto">
+              <Button onClick={handleFilter} className="w-full">Filter</Button>
+              <Button onClick={resetFilters} variant="ghost" className="w-full">Reset</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -356,7 +347,7 @@ export default function DeviceDetailsPage() {
                 <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'm / mm', angle: -90, position: 'insideRight' }}/>
                 <Tooltip content={<ChartTooltipContent />} />
                 <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temperature" stroke="#fbbf24" dot={false} />
+                <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temperature" stroke="#fbbf24" dot={false} connectNulls />
                 <Line yAxisId="right" type="monotone" dataKey="water_level" name="Water Level" stroke="#38bdf8" dot={false} />
                 <Line yAxisId="right" type="monotone" dataKey="rainfall" name="Rainfall" stroke="#34d399" dot={false} />
               </LineChart>
@@ -366,17 +357,21 @@ export default function DeviceDetailsPage() {
         <Card className="lg:col-span-2" id="pie-chart-container">
           <CardHeader><CardTitle>Averages (Filtered)</CardTitle></CardHeader>
           <CardContent className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
-                        {pieChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                    </Pie>
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                </PieChart>
-            </ResponsiveContainer>
+             {pieChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie data={pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
+                            {pieChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                            ))}
+                        </Pie>
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend />
+                    </PieChart>
+                </ResponsiveContainer>
+             ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">No data for pie chart.</div>
+             )}
           </CardContent>
         </Card>
       </div>

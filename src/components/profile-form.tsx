@@ -14,12 +14,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { User, Mail, Loader2 } from 'lucide-react';
-import { useTransition } from 'react';
+import { useTransition, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
-import { updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 
 const formSchema = z.object({
@@ -29,34 +27,40 @@ const formSchema = z.object({
 
 export function ProfileForm() {
   const [isPending, startTransition] = useTransition();
-  const { user, isLoading } = useUser();
+  const { user, isLoading, token } = useUser();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    values: {
-      name: user?.displayName || '',
-      email: user?.email || '',
-    },
     defaultValues: {
       name: '',
       email: '',
     },
   });
+  
+  useEffect(() => {
+    if (user) {
+        form.reset({
+            name: user.name || '',
+            email: user.email || '',
+        });
+    }
+  }, [user, form]);
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) return;
 
     startTransition(async () => {
       try {
-        await updateProfile(user, {
-            displayName: values.name,
-        });
-        // Note: updating email with Firebase Auth requires re-authentication.
-        // We are skipping that for simplicity here.
+        // In a real app, you would send this to your backend to update the user profile
+        // For this example, we'll just show a success message.
+        console.log("Updating profile with:", values);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         toast({
             title: 'Success!',
-            description: 'Your profile has been updated.',
+            description: 'Your profile has been updated. (This is a demo, no data was changed).',
         });
       } catch (error: any) {
          toast({
@@ -76,7 +80,7 @@ export function ProfileForm() {
     return <p>Please log in to view your profile.</p>;
   }
 
-  const displayName = user.displayName || user.email || 'User';
+  const displayName = user.name || user.email || 'User';
   const avatarFallback = displayName.substring(0, 2).toUpperCase();
 
   return (
@@ -86,7 +90,7 @@ export function ProfileForm() {
               <AvatarImage src={user.photoURL || undefined} />
               <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
-            <Button variant="outline">Change Photo</Button>
+            <Button variant="outline" disabled>Change Photo (Coming Soon)</Button>
         </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">

@@ -22,11 +22,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Home, User, Settings, LogOut, PanelLeft, Loader2, Sun, Moon, List } from 'lucide-react';
+import { Home, User, Settings, LogOut, PanelLeft, Loader2, Sun, Moon, List, Shield } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
 import { useTheme } from 'next-themes';
 import { Logo } from '@/components/logo';
 
@@ -48,12 +46,13 @@ function ThemeToggle() {
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useUser();
+  const { user, isLoading, isAdmin, logout } = useUser();
   const router = useRouter();
 
   const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/');
+    logout();
+    router.push('/login');
+    router.refresh();
   };
 
   if (isLoading) {
@@ -65,10 +64,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user) {
-    return null;
+    // This should ideally not be reached due to logic in useUser hook
+    // but as a fallback, we can redirect.
+    // router.replace('/login');
+    return (
+       <div className="flex min-h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
-  const displayName = user.displayName || user.email || 'User';
+  const displayName = user.name || user.email || 'User';
   const displayEmail = user.email || '';
   const avatarFallback = displayName.substring(0, 2).toUpperCase();
 
@@ -99,6 +105,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {isAdmin && (
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Admin Panel">
+                    <Link href="/dashboard/admin">
+                        <Shield />
+                        <span>Admin Panel</span>
+                    </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Profile">
                   <Link href="/dashboard/profile">
@@ -161,6 +177,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings"><Settings className="mr-2 h-4 w-4" />Settings</Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                    <DropdownMenuItem asChild>
+                        <Link href="/dashboard/admin"><Shield className="mr-2 h-4 w-4" />Admin</Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                    <LogOut className="mr-2 h-4 w-4" />Logout
