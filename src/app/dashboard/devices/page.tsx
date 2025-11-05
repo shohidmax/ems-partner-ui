@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useUser } from '@/hooks/use-user';
 
 const API_URL = 'https://espserver3.onrender.com/api/device/list';
 const API_DATA_URL = 'https://espserver3.onrender.com/api/device/data';
@@ -36,6 +37,7 @@ export default function DeviceListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { token } = useUser();
 
   const handleCopy = (e: React.MouseEvent, text: string) => {
     e.stopPropagation();
@@ -48,18 +50,24 @@ export default function DeviceListPage() {
   };
 
   const fetchData = async () => {
-    // We don't reset loading to true on polls to avoid skeleton flickers
-    // setLoading(true) 
+    if (!token) {
+        // Don't fetch if token isn't ready. The useUser hook will redirect if needed.
+        return;
+    }
     try {
+      const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+      };
       // Fetch device list from the new endpoint
-      const listResponse = await fetch(API_URL, { mode: 'cors', cache: 'no-cache' });
+      const listResponse = await fetch(API_URL, { headers });
       if (!listResponse.ok) {
         throw new Error(`Failed to fetch device list. Status: ${listResponse.status}`);
       }
       const deviceList: DeviceInfo[] = await listResponse.json();
       
       // Fetch latest data from the old endpoint to get sensor readings
-      const dataResponse = await fetch(API_DATA_URL, { mode: 'cors', cache: 'no-cache' });
+      const dataResponse = await fetch(API_DATA_URL, { headers });
        if (!dataResponse.ok) {
         throw new Error(`Failed to fetch device sensor data. Status: ${dataResponse.status}`);
       }
@@ -89,7 +97,7 @@ export default function DeviceListPage() {
     fetchData();
     const interval = setInterval(fetchData, 60000); // Poll every 60 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
 
   const getLatestDataForDevice = (uid: string): Partial<DeviceData> => {
     const deviceHistory = deviceData
