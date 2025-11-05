@@ -13,8 +13,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useTransition } from 'react';
-import { Loader2, Lock } from 'lucide-react';
+import { useTransition, useState } from 'react';
+import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 
@@ -27,6 +27,8 @@ const formSchema = z.object({
 
 export function PasswordChangeForm() {
   const [isPending, startTransition] = useTransition();
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const { toast } = useToast();
   const { token } = useUser();
 
@@ -86,7 +88,19 @@ export function PasswordChangeForm() {
                 <FormControl>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="password" placeholder="••••••••" {...field} className="pl-10" />
+                    <Input 
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        placeholder="••••••••" 
+                        {...field} 
+                        className="pl-10 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
+                    >
+                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -102,7 +116,19 @@ export function PasswordChangeForm() {
                 <FormControl>
                    <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="password" placeholder="••••••••" {...field} className="pl-10" />
+                     <Input 
+                        type={showNewPassword ? 'text' : 'password'}
+                        placeholder="••••••••" 
+                        {...field} 
+                        className="pl-10 pr-10"
+                     />
+                     <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
                 </FormControl>
                 <FormMessage />
