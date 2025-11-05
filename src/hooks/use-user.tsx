@@ -72,14 +72,14 @@ export function useUser() {
     if (!tokenToVerify) {
       logout();
       setIsLoading(false);
-      return false;
+      return;
     }
     try {
       const decoded: UserPayload = jwtDecode(tokenToVerify);
       if (decoded.exp * 1000 < Date.now()) {
         logout();
         setIsLoading(false);
-        return false;
+        return;
       }
       
       const profileResponse = await fetch(`${API_URL}/profile`, {
@@ -92,19 +92,14 @@ export function useUser() {
           setToken(tokenToVerify);
           const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ADMIN_EMAIL;
           setIsAdmin(fullProfile.email === adminEmail || !!fullProfile.isAdmin);
-          setIsLoading(false);
-          return true;
       } else {
           logout();
-          setIsLoading(false);
-          return false;
       }
-
     } catch (error) {
       console.error('Invalid token or failed to fetch profile:', error);
       logout();
-      setIsLoading(false);
-      return false;
+    } finally {
+        setIsLoading(false);
     }
   }, [logout]);
 
@@ -116,7 +111,7 @@ export function useUser() {
   
   useEffect(() => {
     if (isLoading) {
-      return;
+      return; // Do nothing while loading
     }
 
     const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/reset-password';
@@ -145,12 +140,13 @@ export function useUser() {
         await verifyTokenAndSetUser(data.token);
         return true;
       }
-      setIsLoading(false);
+      
       return false;
     } catch (error) {
       console.error('Login error:', error);
-      setIsLoading(false);
       return false;
+    } finally {
+        setIsLoading(false);
     }
   };
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -25,7 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Home, User, Settings, LogOut, PanelLeft, Loader2, Sun, Moon, List, Shield } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Logo } from '@/components/logo';
 
@@ -49,6 +50,7 @@ function ThemeToggle() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAdmin, logout } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     logout();
@@ -63,14 +65,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
-
+  
   if (!user) {
-    // This should ideally not be reached due to logic in useUser hook
-    // but as a fallback, we can redirect.
-    // router.replace('/login');
+    // This check is important for the case where `isLoading` is false but `user` is still null.
+    // The hook should handle the redirect, but this is a safe fallback.
     return (
        <div className="flex min-h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+         <p>Redirecting to login...</p>
+         <Loader2 className="ml-2 h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -91,26 +93,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Overview">
+                <SidebarMenuButton asChild tooltip="Overview" isActive={pathname === '/dashboard'}>
                   <Link href="/dashboard">
                     <Home />
                     <span>Overview</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {isAdmin && (
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Device List">
-                    <Link href="/dashboard/devices">
-                        <List />
-                        <span>Device List</span>
-                    </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Device List" isActive={pathname.startsWith('/dashboard/devices') || pathname.startsWith('/dashboard/device/')}>
+                <Link href="/dashboard/devices">
+                    <List />
+                    <span>Device List</span>
+                </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               
                <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Profile">
+                <SidebarMenuButton asChild tooltip="Profile" isActive={pathname === '/dashboard/profile'}>
                   <Link href="/dashboard/profile">
                     <User />
                     <span>Profile</span>
@@ -118,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SidebarMenuButton>
               </SidebarMenuItem>
                <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Settings">
+                <SidebarMenuButton asChild tooltip="Settings" isActive={pathname === '/dashboard/settings'}>
                   <Link href="/dashboard/settings">
                     <Settings />
                     <span>Settings</span>
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {isAdmin && (
                 <SidebarGroup>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Admin Panel">
+                        <SidebarMenuButton asChild tooltip="Admin Panel" isActive={pathname.startsWith('/dashboard/admin')}>
                         <Link href="/dashboard/admin">
                             <Shield />
                             <span>Admin Panel</span>
@@ -151,16 +151,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {/* Optional: Add Breadcrumbs or Page Title here */}
             </div>
             <ThemeToggle />
-            <Button variant="ghost" size="icon" asChild>
-                <Link href="/dashboard/profile">
-                    <User />
-                    <span className="sr-only">Profile</span>
-                </Link>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut />
-                <span className="sr-only">Logout</span>
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
