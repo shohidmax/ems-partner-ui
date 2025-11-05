@@ -10,6 +10,7 @@ const API_URL = 'https://espserver3.onrender.com/api/user';
 interface UserPayload {
   userId: string;
   email: string;
+  name: string; // Add name to JWT payload
   iat: number;
   exp: number;
 }
@@ -64,7 +65,7 @@ export function useUser() {
             userId: decoded.userId,
             email: decoded.email,
             isAdmin: userIsAdmin,
-            name: 'User' // placeholder, should be fetched
+            name: decoded.name || 'User' // Get name from token
         };
 
         setUser(decodedUser);
