@@ -4,86 +4,75 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, Copy, List, BarChart, Thermometer, Droplets, CloudRain } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain } from 'lucide-react';
+import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://espserver3.onrender.com/api/device/data';
+const API_URL = 'https://espserver3.onrender.com/api/device/list';
 
-interface DeviceData {
+interface DeviceInfo {
   uid: string;
-  temperature: number | null;
-  water_level: number;
-  rainfall: number;
-  timestamp: string;
+  name: string | null;
+  location: string | null;
+  status: 'online' | 'offline' | 'unknown';
+  lastSeen: string | null;
+  latestData?: {
+    temperature: number | null;
+    water_level: number;
+    rainfall: number;
+  }
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DeviceData[]>([]);
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token } = useUser();
 
   const fetchData = async () => {
+     if (!token) {
+        setLoading(false);
+        return;
+    }
+    setLoading(true);
     try {
-      const response = await fetch(API_URL, { mode: 'cors', cache: 'no-cache' });
-      if (!response.ok) {
-        throw new Error(`Network response was not ok. Status: ${response.status}`);
-      }
-      const jsonData = await response.json();
-      const processedData = jsonData.map((d: any) => ({
-        ...d,
-        temperature: (d.temperature === 85 || typeof d.temperature !== 'number') ? null : d.temperature,
-        water_level: (typeof d.water_level !== 'number') ? 0 : d.water_level,
-        rainfall: (typeof d.rainfall !== 'number') ? 0 : d.rainfall,
-        timestamp: d.timestamp && !d.timestamp.startsWith('1970-') ? d.timestamp : null
-      })).filter((d: any) => d.timestamp);
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const response = await fetch(API_URL, { headers, cache: 'no-cache' });
       
-      setData(processedData);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch device list. Status: ${response.status}`);
+      }
+      
+      const deviceList: DeviceInfo[] = await response.json();
+      
+      setDevices(deviceList.sort((a,b) => (b.lastSeen && a.lastSeen) ? new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime() : 0));
       setError(null);
+
     } catch (e: any) {
       console.error('Failed to fetch data:', e);
-      setError('Failed to fetch live data. The server might be offline. Please try again later.');
+      setError('Failed to fetch live data. The server might be offline or an error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 60000); // Poll every 60 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
 
-  const getLatestDataForDevices = (): DeviceData[] => {
-    const latestDataMap = new Map<string, DeviceData>();
-    data.forEach(device => {
-      if (!device.uid || !device.timestamp) return;
-      const existing = latestDataMap.get(device.uid);
-      if (!existing || new Date(device.timestamp) > new Date(existing.timestamp)) {
-        latestDataMap.set(device.uid, device);
-      }
-    });
-    return Array.from(latestDataMap.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  };
-
-  const isDeviceOnline = (timestamp: string) => {
-    if (!timestamp) return false;
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-    return new Date(timestamp) > twoMinutesAgo;
-  };
-
-  const latestUniqueDevices = getLatestDataForDevices();
-  const onlineDevicesCount = latestUniqueDevices.filter(device => isDeviceOnline(device.timestamp)).length;
-
+  const onlineDevices = devices.filter(d => d.status === 'online');
+  const onlineDevicesCount = onlineDevices.length;
+  
   const summaryStats = () => {
-    const onlineDevices = latestUniqueDevices.filter(d => isDeviceOnline(d.timestamp));
     if (onlineDevices.length === 0) {
       return { avgTemp: null, avgWater: 0, avgRain: 0 };
     }
-    const validTemps = onlineDevices.map(d => d.temperature).filter(t => t !== null) as number[];
+    const validTemps = onlineDevices.map(d => d.latestData?.temperature).filter(t => t !== null && t !== undefined) as number[];
     const avgTemp = validTemps.length > 0 ? validTemps.reduce((a, b) => a + b, 0) / validTemps.length : null;
-    const avgWater = onlineDevices.reduce((a, b) => a + b.water_level, 0) / onlineDevices.length;
-    const avgRain = onlineDevices.reduce((a, b) => a + b.rainfall, 0) / onlineDevices.length;
+    const avgWater = onlineDevices.reduce((a, b) => a + (b.latestData?.water_level || 0), 0) / onlineDevices.length;
+    const avgRain = onlineDevices.reduce((a, b) => a + (b.latestData?.rainfall || 0), 0) / onlineDevices.length;
     return { avgTemp, avgWater, avgRain };
   }
 
@@ -121,7 +110,7 @@ export default function DashboardPage() {
                 </div>
                 <span className="text-muted-foreground">/</span>
                 <div className="text-muted-foreground font-semibold">
-                    <span>{latestUniqueDevices.length} Total</span>
+                    <span>{devices.length} Total</span>
                 </div>
             </div>
         )}
@@ -174,7 +163,7 @@ export default function DashboardPage() {
                         <List className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{latestUniqueDevices.length}</div>
+                        <div className="text-2xl font-bold">{devices.length}</div>
                         <p className="text-xs text-muted-foreground">{onlineDevicesCount} currently online</p>
                     </CardContent>
                 </Card>
@@ -191,16 +180,16 @@ export default function DashboardPage() {
                 <CardContent>
                    <div className="space-y-4">
                      {loading ? Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />) :
-                      latestUniqueDevices.slice(0, 5).map(device => (
+                      devices.slice(0, 5).map(device => (
                         <div key={device.uid} className="flex items-center">
-                            <div className={`h-2.5 w-2.5 rounded-full mr-3 ${isDeviceOnline(device.timestamp) ? 'bg-green-500' : 'bg-muted-foreground'}`}></div>
+                            <div className={`h-2.5 w-2.5 rounded-full mr-3 ${device.status === 'online' ? 'bg-green-500' : 'bg-muted-foreground'}`}></div>
                             <div className="flex-1">
-                                <p className="text-sm font-medium leading-none">Device <span className="font-mono text-primary text-xs">{device.uid.substring(0, 12)}...</span></p>
+                                <p className="text-sm font-medium leading-none">Device <Link href={`/dashboard/device/${device.uid}`} className="font-mono text-primary text-xs hover:underline">{device.uid.substring(0, 12)}...</Link></p>
                                 <p className="text-sm text-muted-foreground">
-                                    {`Temp: ${device.temperature !== null ? device.temperature.toFixed(1) + '°C' : 'N/A'}`}
+                                    {`Temp: ${device.latestData?.temperature !== null && device.latestData?.temperature !== undefined ? device.latestData.temperature.toFixed(1) + '°C' : 'N/A'}`}
                                 </p>
                             </div>
-                            <div className="ml-auto font-medium text-sm">{new Date(device.timestamp).toLocaleTimeString()}</div>
+                            <div className="ml-auto font-medium text-sm">{device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'N/A'}</div>
                         </div>
                       ))
                      }
