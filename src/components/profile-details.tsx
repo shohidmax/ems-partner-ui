@@ -31,15 +31,6 @@ export function ProfileDetails() {
                         <Skeleton className="h-8 w-full" />
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <Skeleton className="h-6 w-1/2" />
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <Skeleton className="h-8 w-full" />
-                        <Skeleton className="h-8 w-full" />
-                    </CardContent>
-                </Card>
             </div>
         );
     }

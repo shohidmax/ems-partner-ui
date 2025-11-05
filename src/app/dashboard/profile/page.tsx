@@ -6,13 +6,17 @@ import { ProfileDetails } from "@/components/profile-details";
 import { useUser } from "@/hooks/use-user";
 import { List, ListItem } from "@/components/ui/list";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
+import { Copy, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { AddDeviceDialog } from "@/components/add-device-dialog";
 
 function UserDeviceList() {
-    const { user, isLoading } = useUser();
+    const { user, isLoading, fetchUserProfile } = useUser();
     const { toast } = useToast();
+    const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
+
 
     const handleCopy = (uid: string) => {
         navigator.clipboard.writeText(uid);
@@ -21,6 +25,10 @@ function UserDeviceList() {
             description: `UID: ${uid}`,
         });
     };
+    
+    const onDeviceAdded = () => {
+        fetchUserProfile();
+    }
 
     if (isLoading) {
         return (
@@ -39,28 +47,39 @@ function UserDeviceList() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>My Devices</CardTitle>
-                <CardDescription>A list of all devices registered to your account.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {user?.devices && user.devices.length > 0 ? (
-                    <List>
-                        {user.devices.map(uid => (
-                            <ListItem key={uid}>
-                                <span className="font-mono text-sm flex-1">{uid}</span>
-                                <Button size="sm" variant="ghost" onClick={() => handleCopy(uid)}>
-                                    <Copy className="h-4 w-4" />
-                                </Button>
-                            </ListItem>
-                        ))}
-                    </List>
-                ) : (
-                    <p className="text-sm text-muted-foreground">You have no devices registered to your account yet.</p>
-                )}
-            </CardContent>
-        </Card>
+        <>
+            <AddDeviceDialog open={isAddDeviceOpen} onOpenChange={setIsAddDeviceOpen} onDeviceAdded={onDeviceAdded} />
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>My Devices</CardTitle>
+                        <CardDescription>A list of all devices registered to your account.</CardDescription>
+                    </div>
+                     <Button size="sm" onClick={() => setIsAddDeviceOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Device
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {user?.devices && user.devices.length > 0 ? (
+                        <List>
+                            {user.devices.map(uid => (
+                                <ListItem key={uid}>
+                                    <span className="font-mono text-sm flex-1">{uid}</span>
+                                    <Button size="sm" variant="ghost" onClick={() => handleCopy(uid)}>
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </ListItem>
+                            ))}
+                        </List>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                            You have no devices registered to your account yet. Click 'Add Device' to get started.
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
+        </>
     )
 }
 
