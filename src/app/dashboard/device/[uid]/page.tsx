@@ -148,7 +148,12 @@ export default function DeviceDetailsPage() {
         }
         
         const historyResponse = await fetch(url, { headers });
-        if (!historyResponse.ok) throw new Error(`Failed to fetch device data. Status: ${historyResponse.status}`);
+        if (!historyResponse.ok) {
+            if (historyResponse.status === 403) {
+                 throw new Error('You do not have permission to view this device.');
+            }
+            throw new Error(`Failed to fetch device data. Status: ${historyResponse.status}`);
+        }
         
         const jsonData = await historyResponse.json();
         const processedData = jsonData.map((d: any) => ({
@@ -162,11 +167,7 @@ export default function DeviceDetailsPage() {
         setDeviceHistory(processedData);
     } catch (e: any) {
         console.error('Failed to fetch data:', e);
-        if (e.message.includes('403')) {
-            setError('You do not have permission to view this device.');
-        } else {
-            setError('Failed to fetch device data. The server might be offline. Please try again later.');
-        }
+        setError(e.message || 'Failed to fetch device data. The server might be offline. Please try again later.');
     } finally {
         setLoading(false);
     }
@@ -281,22 +282,27 @@ export default function DeviceDetailsPage() {
     const pageMargin = 15;
     let currentY = pageMargin;
 
+    if (qrCodeUrl) {
+      pdf.addImage(qrCodeUrl, 'PNG', pdf.internal.pageSize.getWidth() - pageMargin - 30, currentY, 30, 30);
+    }
+
     pdf.setFontSize(18);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Environmental Monitoring System Report', pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+    pdf.text('Environmental Monitoring Report', pageMargin, currentY + 5);
     currentY += 10;
+    
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`Device UID: ${uid}`, pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+    pdf.text(`Device UID: ${uid}`, pageMargin, currentY + 5);
      if (deviceInfo?.name) {
         currentY += 6;
-        pdf.text(`Device Name: ${deviceInfo.name}`, pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+        pdf.text(`Device Name: ${deviceInfo.name}`, pageMargin, currentY + 5);
     }
     if (deviceInfo?.location) {
         currentY += 6;
-        pdf.text(`Location: ${deviceInfo.location}`, pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+        pdf.text(`Location: ${deviceInfo.location}`, pageMargin, currentY + 5);
     }
-    currentY += 15;
+    currentY += 25;
 
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'bold');
@@ -309,8 +315,8 @@ export default function DeviceDetailsPage() {
             ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
             ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} m` : 'N/A'],
             ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
-            ["Filter Start:", startDate ? new Date(startDate).toLocaleString() : 'All'],
-            ["Filter End:", endDate ? new Date(endDate).toLocaleString() : 'All'],
+            ["Filter Start:", appliedStartDate ? new Date(appliedStartDate).toLocaleString() : 'All'],
+            ["Filter End:", appliedEndDate ? new Date(appliedEndDate).toLocaleString() : 'All'],
         ],
         startY: currentY,
         theme: 'plain',
@@ -323,7 +329,7 @@ export default function DeviceDetailsPage() {
     const addChartToPdf = async (chartSelector: string, title: string) => {
         const chartEl = document.querySelector<HTMLElement>(chartSelector);
         if (chartEl) {
-          const canvas = await html2canvas(chartEl, { backgroundColor: '#ffffff' });
+          const canvas = await html2canvas(chartEl, { backgroundColor: '#ffffff', scale: 2 });
           const imgData = canvas.toDataURL('image/png');
           const imgProps = pdf.getImageProperties(imgData);
           const aspectRatio = imgProps.height / imgProps.width;
