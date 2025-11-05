@@ -54,9 +54,11 @@ export function useUser() {
             setIsAdmin(fullProfile.email === adminEmail || !!fullProfile.isAdmin);
         } else {
            console.warn('Could not refetch profile, user data might be stale.');
+           logout();
         }
     } catch (error) {
         console.warn('Full profile refetch failed:', error);
+        logout();
     }
   }, []);
 
@@ -67,45 +69,33 @@ export function useUser() {
     }
     try {
       const decoded: UserPayload = jwtDecode(tokenToVerify);
-      if (decoded.exp * 1000 > Date.now()) {
-        setToken(tokenToVerify);
-
-        const profile: UserProfile = {
-            _id: decoded.userId,
-            name: decoded.name || decoded.email,
-            email: decoded.email,
-            devices: [],
-            createdAt: new Date(decoded.iat * 1000).toISOString(),
-        };
-
-        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ADMIN_EMAIL;
-        
-        try {
-            const profileResponse = await fetch(`${API_URL}/profile`, {
-                headers: { 'Authorization': `Bearer ${tokenToVerify}` }
-            });
-            if (profileResponse.ok) {
-                const fullProfile: UserProfile = await profileResponse.json();
-                setUser(fullProfile);
-                setIsAdmin(fullProfile.email === adminEmail || !!fullProfile.isAdmin);
-            } else {
-                 // If fetching full profile fails, fallback to token data
-                setUser(profile);
-                setIsAdmin(profile.email === adminEmail);
-            }
-        } catch (e) {
-            // Keep the admin status from the token if profile fetch fails
-            setUser(profile);
-            setIsAdmin(profile.email === adminEmail);
-        }
-
-        return true;
+      if (decoded.exp * 1000 < Date.now()) {
+        logout();
+        return false;
       }
+      
+      setToken(tokenToVerify);
+      const profileResponse = await fetch(`${API_URL}/profile`, {
+          headers: { 'Authorization': `Bearer ${tokenToVerify}` }
+      });
+
+      if (profileResponse.ok) {
+          const fullProfile: UserProfile = await profileResponse.json();
+          setUser(fullProfile);
+          const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ADMIN_EMAIL;
+          setIsAdmin(fullProfile.email === adminEmail || !!fullProfile.isAdmin);
+          return true;
+      } else {
+          // If fetching profile fails, token is invalid or backend is down.
+          logout();
+          return false;
+      }
+
     } catch (error) {
-      console.error('Invalid token:', error);
+      console.error('Invalid token or failed to fetch profile:', error);
+      logout();
+      return false;
     }
-    logout();
-    return false;
   }, []);
 
 
