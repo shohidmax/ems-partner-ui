@@ -7,6 +7,8 @@ import { jwtDecode } from 'jwt-decode';
 import { useToast } from './use-toast';
 
 const API_URL = 'https://espserver3.onrender.com/api/user';
+const ADMIN_EMAIL = 'shohidmax@gmail.com';
+
 
 interface UserPayload {
   userId: string;
@@ -48,7 +50,7 @@ export function useUser() {
         if (response.ok) {
             const fullProfile: UserProfile = await response.json();
             setUser(fullProfile);
-            const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com';
+            const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ADMIN_EMAIL;
             setIsAdmin(fullProfile.email === adminEmail || !!fullProfile.isAdmin);
         } else {
            console.warn('Could not refetch profile, user data might be stale.');
@@ -68,39 +70,32 @@ export function useUser() {
       if (decoded.exp * 1000 > Date.now()) {
         setToken(tokenToVerify);
 
-        // Since the /profile endpoint doesn't exist, we construct the user from the token.
         const profile: UserProfile = {
             _id: decoded.userId,
             name: decoded.name || decoded.email,
             email: decoded.email,
-            // 'devices' and 'isAdmin' will be fetched separately if needed or assumed.
-            devices: [], // This will be updated by fetchUserProfile
+            devices: [],
             createdAt: new Date(decoded.iat * 1000).toISOString(),
         };
 
-        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@example.com';
+        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ADMIN_EMAIL;
         
-        // We can't know if they are admin from the JWT alone.
-        // The backend `ensureAdmin` checks the DB. Here, we'll provisionally check the email.
         const userIsAdminByEmail = profile.email === adminEmail;
         
         setUser(profile);
         
-        // After setting basic info, try to get full profile from the backend
         try {
             const profileResponse = await fetch(`${API_URL}/profile`, {
                 headers: { 'Authorization': `Bearer ${tokenToVerify}` }
             });
             if (profileResponse.ok) {
                 const fullProfile: UserProfile = await profileResponse.json();
-                setUser(fullProfile); // Update user with full details
+                setUser(fullProfile);
                 setIsAdmin(fullProfile.email === adminEmail || !!fullProfile.isAdmin);
             } else {
-                // If profile endpoint fails, fall back to email check
                 setIsAdmin(userIsAdminByEmail);
             }
         } catch (e) {
-            // Network error, fall back to email check
             setIsAdmin(userIsAdminByEmail);
         }
 

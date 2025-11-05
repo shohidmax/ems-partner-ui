@@ -11,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarTrigger,
   SidebarInset,
+  SidebarGroup,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -105,17 +106,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {isAdmin && (
-                <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Admin Panel">
-                    <Link href="/dashboard/admin">
-                        <Shield />
-                        <span>Admin Panel</span>
-                    </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              <SidebarMenuItem>
+              
+               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Profile">
                   <Link href="/dashboard/profile">
                     <User />
@@ -123,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
+               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Settings">
                   <Link href="/dashboard/settings">
                     <Settings />
@@ -131,6 +123,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {isAdmin && (
+                <SidebarGroup>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Admin Panel">
+                        <Link href="/dashboard/admin">
+                            <Shield />
+                            <span>Admin Panel</span>
+                        </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarGroup>
+              )}
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>

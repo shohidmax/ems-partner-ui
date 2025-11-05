@@ -100,7 +100,7 @@ export default function AdminDashboardPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">Manage Users</div>
-                    <p className="text-xs text-muted-foreground">(Coming Soon)</p>
+                    <Link href="/dashboard/admin/users" className="text-xs text-primary hover:underline">Go to User Management</Link>
                 </CardContent>
             </Card>
             <Card>
@@ -123,10 +123,14 @@ export default function AdminDashboardPage() {
                     <CardTitle>Admin Tools</CardTitle>
                     <CardDescription>Manage devices, users, and system settings.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
+                <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     <Link href="/dashboard/admin/devices" className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
                         <List className="h-8 w-8 text-primary" />
                         <p className="mt-2 text-sm font-semibold">Manage Devices</p>
+                    </Link>
+                     <Link href="/dashboard/admin/users" className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                        <Users className="h-8 w-8 text-primary" />
+                        <p className="mt-2 text-sm font-semibold">Manage Users</p>
                     </Link>
                     <Link href="/dashboard/admin/reports" className="flex flex-col items-center justify-center p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
                         <BarChart className="h-8 w-8 text-primary" />
