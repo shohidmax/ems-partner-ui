@@ -77,8 +77,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             return null;
         }
     }, []);
-
+    
     const initializeAuth = useCallback(async () => {
+        setIsLoading(true);
         const tokenFromStorage = localStorage.getItem('token');
         if (tokenFromStorage) {
             const profile = await fetchUserProfile(tokenFromStorage);
@@ -97,28 +98,28 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
     }, [fetchUserProfile]);
 
+
     useEffect(() => {
         initializeAuth();
     }, [initializeAuth]);
     
-    useEffect(() => {
+     useEffect(() => {
         if (isLoading) {
             return; // Do not run redirection logic while auth state is being determined
         }
 
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         const isHomePage = pathname === '/';
-        const isDashboardPage = pathname.startsWith('/dashboard');
-
+        
         if (user) {
-            // If user is logged in, and on an auth page or the homepage, redirect to dashboard
+            // If user is logged in and on an auth page or the homepage, redirect to their respective dashboard
             if (isAuthPage || isHomePage) {
-                router.replace('/dashboard');
+                router.replace(user.isAdmin ? '/dashboard/admin' : '/dashboard');
             }
         } else {
-            // If user is not logged in and tries to access a protected page, redirect to login
-            if (isDashboardPage) {
-                router.replace('/login');
+            // If user is not logged in and tries to access any page other than auth pages or home, redirect to login
+            if (!isAuthPage && !isHomePage) {
+                 router.replace('/login');
             }
         }
     }, [user, isLoading, pathname, router]);
@@ -134,9 +135,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.success && data.token) {
                 localStorage.setItem('token', data.token);
-                // Manually trigger re-initialization after successful login
-                await initializeAuth();
-                return true;
+                const profile = await fetchUserProfile(data.token);
+                if (profile) {
+                    setUser(profile);
+                    setToken(data.token);
+                    setIsAdmin(profile.isAdmin);
+                    return true;
+                } else {
+                    // This case handles if profile fetch fails right after login
+                    localStorage.removeItem('token');
+                    return false;
+                }
             }
             return false;
         } catch (error) {
