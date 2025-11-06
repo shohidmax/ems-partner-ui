@@ -61,31 +61,18 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error("Token expired");
             }
 
-            // The /api/user/profile endpoint is returning a 404.
-            // We will fetch from /api/user/devices and construct a partial profile.
-            const devicesResponse = await fetch(`${API_URL}/user/devices`, {
+            const profileResponse = await fetch(`${API_URL}/user/profile`, {
                 headers: { 'Authorization': `Bearer ${tokenToVerify}` }
             });
 
-            if (!devicesResponse.ok) {
-                const errorData = await devicesResponse.text();
-                console.error("Device/Profile fetch failed with status:", devicesResponse.status, "and data:", errorData);
-                throw new Error("Failed to fetch user data");
+            if (!profileResponse.ok) {
+                const errorData = await profileResponse.text();
+                console.error("Profile fetch failed with status:", profileResponse.status, "and data:", errorData);
+                throw new Error("Failed to fetch user profile");
             }
             
-            const devices: { uid: string }[] = await devicesResponse.json();
-
-            // Construct a user profile from the token and device list
-            const partialProfile: UserProfile = {
-                _id: decoded.userId,
-                name: decoded.name || 'User',
-                email: decoded.email,
-                isAdmin: decoded.isAdmin || false,
-                devices: devices.map(d => d.uid),
-                createdAt: new Date(decoded.iat * 1000).toISOString(),
-            };
-
-            return partialProfile;
+            const fullProfile: UserProfile = await profileResponse.json();
+            return fullProfile;
 
         } catch (error) {
             console.error('Token verification or profile fetch failed:', error);
@@ -103,7 +90,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 setToken(tokenFromStorage);
                 setIsAdmin(profile.isAdmin);
             } else {
-                // If profile fetch fails, token is invalid. Log out.
                 logout();
             }
         }
