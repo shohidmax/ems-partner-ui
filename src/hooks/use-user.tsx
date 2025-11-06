@@ -12,6 +12,7 @@ interface UserPayload {
   email: string;
   name?: string;
   isAdmin?: boolean;
+  role?: string;
   iat: number;
   exp: number;
 }
@@ -51,7 +52,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+        }
     }, []);
 
     const fetchUserProfile = useCallback(async (tokenToVerify?: string): Promise<UserProfile | null> => {
@@ -66,8 +69,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error("Token expired");
             }
             
-            const isUserAdmin = decoded.isAdmin === true;
+            const isUserAdmin = decoded.isAdmin === true || decoded.role === 'admin';
 
+            // Admins might not have a device list, or we fetch it from a different endpoint.
+            // For now, we fetch devices for all users for simplicity.
             const devicesResponse = await fetch(`${API_URL}/user/devices`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
@@ -76,8 +81,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             if (devicesResponse.ok) {
                 const devicesData = await devicesResponse.json();
                 userDevices = devicesData.map((d: any) => d.uid);
-            } else {
-                console.warn("Could not fetch user devices, but proceeding.");
             }
             
             const profile: UserProfile = {
