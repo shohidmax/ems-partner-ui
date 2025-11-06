@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { useTransition, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
+import { useRouter } from 'next/navigation';
 
 
 const formSchema = z.object({
@@ -32,6 +33,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const { login } = useUser();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,8 +51,8 @@ export function LoginForm() {
           title: 'Login Successful',
           description: 'Welcome back!',
         });
-        // Hard redirect to dashboard to ensure all states are reset correctly.
-        window.location.href = '/dashboard';
+        // The redirection is now handled by the useUser hook.
+        // No router.push or window.location needed here.
       } else {
         toast({
           title: 'Login Failed',

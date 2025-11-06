@@ -50,24 +50,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
+        // Use a hard redirect to ensure all state is cleared
         window.location.href = '/login';
     }, []);
 
-    const verifyTokenAndSetUser = useCallback(async (tokenToVerify: string | null) => {
-        if (!tokenToVerify) {
-            setUser(null);
-            setToken(null);
-            setIsAdmin(false);
-            setIsLoading(false);
-            return;
-        }
-
+    const fetchUserProfile = useCallback(async (tokenToVerify: string): Promise<UserProfile | null> => {
         try {
             const decoded: UserPayload = jwtDecode(tokenToVerify);
             if (decoded.exp * 1000 < Date.now()) {
                 throw new Error("Token expired");
             }
-            
+
             const profileResponse = await fetch(`${API_URL}/profile`, {
                 headers: { 'Authorization': `Bearer ${tokenToVerify}` }
             });
@@ -75,44 +68,58 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             if (!profileResponse.ok) {
                 throw new Error("Failed to fetch user profile");
             }
-
+            
             const fullProfile: UserProfile = await profileResponse.json();
-            setUser(fullProfile);
-            setToken(tokenToVerify);
-            setIsAdmin(fullProfile.isAdmin);
+            return fullProfile;
 
         } catch (error) {
-            console.error('Token verification failed:', error);
-            localStorage.removeItem('token');
-            setUser(null);
-            setToken(null);
-            setIsAdmin(false);
-        } finally {
-            setIsLoading(false);
+            console.error('Token verification or profile fetch failed:', error);
+            return null;
         }
     }, []);
-    
-    const fetchUserProfile = useCallback(async () => {
-        const currentToken = localStorage.getItem('token');
-        await verifyTokenAndSetUser(currentToken);
-    }, [verifyTokenAndSetUser]);
+
+    const initializeAuth = useCallback(async () => {
+        const tokenFromStorage = localStorage.getItem('token');
+        if (tokenFromStorage) {
+            const profile = await fetchUserProfile(tokenFromStorage);
+            if (profile) {
+                setUser(profile);
+                setToken(tokenFromStorage);
+                setIsAdmin(profile.isAdmin);
+            } else {
+                // Token is invalid or expired
+                localStorage.removeItem('token');
+                setUser(null);
+                setToken(null);
+                setIsAdmin(false);
+            }
+        }
+        setIsLoading(false);
+    }, [fetchUserProfile]);
 
     useEffect(() => {
-        const tokenFromStorage = localStorage.getItem('token');
-        verifyTokenAndSetUser(tokenFromStorage);
-    }, [verifyTokenAndSetUser]);
+        initializeAuth();
+    }, [initializeAuth]);
     
     useEffect(() => {
-        if (isLoading) return;
+        if (isLoading) {
+            return; // Do not run redirection logic while auth state is being determined
+        }
 
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         const isHomePage = pathname === '/';
-        const isProtectedPage = pathname.startsWith('/dashboard');
+        const isDashboardPage = pathname.startsWith('/dashboard');
 
-        if (!user && isProtectedPage) {
-            router.replace('/login');
-        } else if (user && (isAuthPage || isHomePage)) {
-            router.replace('/dashboard');
+        if (user) {
+            // If user is logged in, and on an auth page or the homepage, redirect to dashboard
+            if (isAuthPage || isHomePage) {
+                router.replace('/dashboard');
+            }
+        } else {
+            // If user is not logged in and tries to access a protected page, redirect to login
+            if (isDashboardPage) {
+                router.replace('/login');
+            }
         }
     }, [user, isLoading, pathname, router]);
 
@@ -127,7 +134,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.success && data.token) {
                 localStorage.setItem('token', data.token);
-                await verifyTokenAndSetUser(data.token);
+                // Manually trigger re-initialization after successful login
+                await initializeAuth();
                 return true;
             }
             return false;
@@ -137,7 +145,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const value = { user, token, isAdmin, isLoading, login, logout, fetchUserProfile };
+    const value = { user, token, isAdmin, isLoading, login, logout, fetchUserProfile: initializeAuth };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
