@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
-const API_URL = 'https://espserver3.onrender.com/api/user';
+const API_URL = 'https://espserver3.onrender.com/api';
 
 interface UserPayload {
   userId: string;
@@ -60,7 +60,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error("Token expired");
             }
 
-            const profileResponse = await fetch(`${API_URL}/profile`, {
+            const profileResponse = await fetch(`${API_URL}/user/profile`, {
                 headers: { 'Authorization': `Bearer ${tokenToVerify}` }
             });
 
@@ -80,7 +80,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
     
     const initializeAuth = useCallback(async () => {
-        const tokenFromStorage = localStorage.getItem('token');
+        setIsLoading(true);
+        const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
         if (tokenFromStorage) {
             const profile = await fetchUserProfile(tokenFromStorage);
             if (profile) {
@@ -121,7 +123,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
     const login = async (email: string, password: string): Promise<boolean> => {
         try {
-            const response = await fetch(`${API_URL}/login`, {
+            const response = await fetch(`${API_URL}/user/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -134,6 +136,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
+                await initializeAuth();
                 return true;
             }
             return false;
