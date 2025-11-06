@@ -49,10 +49,9 @@ export function LoginForm() {
       if (success) {
         toast({
           title: 'Login Successful',
-          description: 'Welcome back!',
+          description: 'Redirecting to your dashboard...',
         });
-        // The redirection is now handled by the useUser hook.
-        // No router.push or window.location needed here.
+        window.location.href = '/dashboard';
       } else {
         toast({
           title: 'Login Failed',

@@ -50,7 +50,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        // Use a hard redirect to ensure all state is cleared
         window.location.href = '/login';
     }, []);
 
@@ -66,6 +65,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             });
 
             if (!profileResponse.ok) {
+                const errorData = await profileResponse.text();
+                console.error("Profile fetch failed with status:", profileResponse.status, "and data:", errorData);
                 throw new Error("Failed to fetch user profile");
             }
             
@@ -79,7 +80,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
     
     const initializeAuth = useCallback(async () => {
-        setIsLoading(true);
         const tokenFromStorage = localStorage.getItem('token');
         if (tokenFromStorage) {
             const profile = await fetchUserProfile(tokenFromStorage);
@@ -88,7 +88,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 setToken(tokenFromStorage);
                 setIsAdmin(profile.isAdmin);
             } else {
-                // Token is invalid or expired
                 localStorage.removeItem('token');
                 setUser(null);
                 setToken(null);
@@ -104,20 +103,16 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }, [initializeAuth]);
     
      useEffect(() => {
-        if (isLoading) {
-            return; // Do not run redirection logic while auth state is being determined
-        }
+        if (isLoading) return;
 
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         const isHomePage = pathname === '/';
         
         if (user) {
-            // If user is logged in and on an auth page or the homepage, redirect to their respective dashboard
             if (isAuthPage || isHomePage) {
                 router.replace(user.isAdmin ? '/dashboard/admin' : '/dashboard');
             }
         } else {
-            // If user is not logged in and tries to access any page other than auth pages or home, redirect to login
             if (!isAuthPage && !isHomePage) {
                  router.replace('/login');
             }
@@ -132,20 +127,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 body: JSON.stringify({ email, password }),
             });
 
+            if (!response.ok) {
+                return false;
+            }
+            
             const data = await response.json();
-            if (data.success && data.token) {
+            if (data.token) {
                 localStorage.setItem('token', data.token);
-                const profile = await fetchUserProfile(data.token);
-                if (profile) {
-                    setUser(profile);
-                    setToken(data.token);
-                    setIsAdmin(profile.isAdmin);
-                    return true;
-                } else {
-                    // This case handles if profile fetch fails right after login
-                    localStorage.removeItem('token');
-                    return false;
-                }
+                return true;
             }
             return false;
         } catch (error) {
