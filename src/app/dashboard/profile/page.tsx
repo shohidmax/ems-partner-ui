@@ -6,16 +6,19 @@ import { ProfileDetails } from "@/components/profile-details";
 import { useUser } from "@/hooks/use-user";
 import { List, ListItem } from "@/components/ui/list";
 import { Button } from "@/components/ui/button";
-import { Copy, Plus } from "lucide-react";
+import { Copy, Plus, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { AddDeviceDialog } from "@/components/add-device-dialog";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const { user, isLoading, fetchUserProfile } = useUser();
   const { toast } = useToast();
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (user) {
@@ -23,7 +26,9 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  const handleCopy = (uid: string) => {
+  const handleCopy = (e: React.MouseEvent, uid: string) => {
+    e.stopPropagation();
+    e.preventDefault();
     navigator.clipboard.writeText(uid);
     toast({
         title: 'Copied to clipboard!',
@@ -77,12 +82,17 @@ export default function ProfilePage() {
                         ) : user?.devices && user.devices.length > 0 ? (
                             <List>
                                 {user.devices.map(uid => (
-                                    <ListItem key={uid}>
-                                        <span className="font-mono text-sm flex-1">{uid}</span>
-                                        <Button size="sm" variant="ghost" onClick={() => handleCopy(uid)}>
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
-                                    </ListItem>
+                                    <Link key={uid} href={`/dashboard/device/${uid}`} className="block">
+                                        <ListItem className="group cursor-pointer transition-all hover:bg-muted">
+                                            <span className="font-mono text-sm flex-1">{uid}</span>
+                                            <div className="flex items-center">
+                                                <Button size="sm" variant="ghost" onClick={(e) => handleCopy(e, uid)}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                                            </div>
+                                        </ListItem>
+                                    </Link>
                                 ))}
                             </List>
                         ) : (
