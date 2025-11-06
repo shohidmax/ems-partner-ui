@@ -80,7 +80,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
     
     const initializeAuth = useCallback(async () => {
-        setIsLoading(true);
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
         if (tokenFromStorage) {
@@ -122,6 +121,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }, [user, isLoading, pathname, router]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
+        setIsLoading(true);
         try {
             const response = await fetch(`${API_URL}/user/login`, {
                 method: 'POST',
@@ -130,18 +130,28 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             });
 
             if (!response.ok) {
+                setIsLoading(false);
                 return false;
             }
             
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
-                await initializeAuth();
-                return true;
+                const profile = await fetchUserProfile(data.token);
+                if (profile) {
+                    setUser(profile);
+                    setToken(data.token);
+                    setIsAdmin(profile.isAdmin);
+                    setIsLoading(false);
+                    router.push(profile.isAdmin ? '/dashboard/admin' : '/dashboard');
+                    return true;
+                }
             }
+            setIsLoading(false);
             return false;
         } catch (error) {
             console.error('Login error:', error);
+            setIsLoading(false);
             return false;
         }
     };
