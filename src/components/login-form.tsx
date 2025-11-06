@@ -50,8 +50,9 @@ export function LoginForm() {
           title: 'Login Successful',
           description: 'Welcome back!',
         });
-        router.push('/dashboard');
-        router.refresh(); // This helps ensure the layout re-renders with user context
+        // The redirection is now handled by the useUser hook.
+        // router.push('/dashboard');
+        // router.refresh();
       } else {
         toast({
           title: 'Login Failed',

@@ -99,14 +99,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         verifyTokenAndSetUser(tokenFromStorage);
     }, []);
     
-    useEffect(() => {
+     useEffect(() => {
         if (isLoading) {
-            return;
+            return; // Do not run redirection logic while loading
         }
 
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         const isProtectedPage = pathname.startsWith('/dashboard');
-        
+
         if (!user && isProtectedPage) {
             router.replace('/login');
         } else if (user && isAuthPage) {
@@ -129,14 +129,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 await verifyTokenAndSetUser(data.token);
                 return true;
             }
-            // Ensure loading is false on failed login
-            setIsLoading(false);
+            logout();
             return false;
         } catch (error) {
             console.error('Login error:', error);
             logout();
-            setIsLoading(false);
             return false;
+        } finally {
+             setIsLoading(false);
         }
     };
     
