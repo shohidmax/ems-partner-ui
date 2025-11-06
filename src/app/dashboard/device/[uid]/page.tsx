@@ -110,7 +110,7 @@ const renderActiveShape = (props: any) => {
 export default function DeviceDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const uid = params.uid as string;
+  const uid = decodeURIComponent(params.uid as string);
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
 
@@ -191,9 +191,15 @@ export default function DeviceDetailsPage() {
                 return;
             }
 
-            setDeviceInfo(currentDevice || { uid, name: 'Unclaimed Device', location: null, status: 'unknown', lastSeen: null});
-            setEditingName(currentDevice?.name || '');
-            setEditingLocation(currentDevice?.location || '');
+            if (!currentDevice) {
+                setDeviceInfo({ uid, name: 'Unclaimed Device', location: null, status: 'unknown', lastSeen: null});
+                setError("Could not find this device in your list, or you are an admin viewing an unassigned device.");
+            } else {
+                 setDeviceInfo(currentDevice);
+                 setEditingName(currentDevice?.name || '');
+                 setEditingLocation(currentDevice?.location || '');
+            }
+
         } else {
             console.warn('Could not fetch device info');
              setError("Could not verify device ownership.");
@@ -207,10 +213,10 @@ export default function DeviceDetailsPage() {
   useEffect(() => {
     if (token && uid) {
         fetchDeviceInfo().then(() => {
-            if(!error) fetchDeviceHistory();
+            fetchDeviceHistory();
         })
     }
-  }, [uid, token, fetchDeviceInfo, fetchDeviceHistory, error]);
+  }, [uid, token, fetchDeviceInfo, fetchDeviceHistory]);
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
@@ -404,7 +410,7 @@ export default function DeviceDetailsPage() {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
-  if (error) {
+  if (error && !deviceHistory.length) {
     return (
       <div className="m-auto">
         <Alert variant="destructive">
@@ -417,7 +423,7 @@ export default function DeviceDetailsPage() {
     );
   }
 
-  if (!loading && !deviceInfo && !error) {
+  if (!loading && !deviceInfo) {
     return (
         <div className="m-auto text-center">
             <Alert>
@@ -496,6 +502,14 @@ export default function DeviceDetailsPage() {
         <p className="text-muted-foreground font-mono">{uid}</p>
         {deviceInfo?.location && <p className="text-muted-foreground text-sm">{deviceInfo.location}</p>}
       </div>
+
+      {error && (
+         <Alert variant="destructive">
+          <TriangleAlert className="h-4 w-4" />
+          <AlertTitle>An Error Occurred</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       
        {deviceHistory.length === 0 && !loading && (
            <Alert>
@@ -510,7 +524,7 @@ export default function DeviceDetailsPage() {
         <CardContent className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
           <div><p className="text-sm text-muted-foreground">Last Updated</p><p className="font-semibold text-lg">{latestData ? new Date(latestData.timestamp).toLocaleString() : 'N/A'}</p></div>
           <div><p className="text-sm text-muted-foreground">Temperature</p><p className="font-bold text-2xl text-amber-500">{latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N'}</p></div>
           <div><p className="text-sm text-muted-foreground">Daily Rainfall</p><p className="font-bold text-2xl text-emerald-500">{latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}</p></div>
         </CardContent>
       </Card>
@@ -634,3 +648,5 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
