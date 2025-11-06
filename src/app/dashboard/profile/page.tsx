@@ -15,10 +15,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
-  const { user, isLoading, fetchUserProfile } = useUser();
+  const { user, isAdmin, isLoading, fetchUserProfile } = useUser();
   const { toast } = useToast();
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isAdmin) {
+      router.replace('/dashboard/admin');
+    }
+  }, [isLoading, isAdmin, router]);
 
   useEffect(() => {
     if (user) {
@@ -39,6 +45,14 @@ export default function ProfilePage() {
   const onDeviceAdded = () => {
       fetchUserProfile();
   };
+
+  if (isLoading || isAdmin) {
+      return (
+        <div className="flex min-h-[50vh] items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      )
+  }
 
   return (
     <div className="space-y-6">

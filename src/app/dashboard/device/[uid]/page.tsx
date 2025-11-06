@@ -140,6 +140,8 @@ export default function DeviceDetailsPage() {
     
     try {
         const headers = { 'Authorization': `Bearer ${token}` };
+        // Admins and regular users use the same endpoint for history, 
+        // but the backend enforces permissions.
         let url = `${API_URL_BASE}/user/device/${uid}/data`;
         
         const queryParams = new URLSearchParams();
@@ -181,7 +183,10 @@ export default function DeviceDetailsPage() {
     if (!token || !uid) return;
      try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        const infoResponse = await fetch(`${API_URL_BASE}/user/devices`, { headers });
+        // Admin gets all devices, user gets their own
+        const infoUrl = isAdmin ? `${API_URL_BASE}/admin/devices` : `${API_URL_BASE}/user/devices`;
+        const infoResponse = await fetch(infoUrl, { headers });
+
         if (infoResponse.ok) {
             const devices: DeviceInfo[] = await infoResponse.json();
             const currentDevice = devices.find(d => d.uid === uid);
@@ -192,8 +197,13 @@ export default function DeviceDetailsPage() {
             }
 
             if (!currentDevice) {
-                setDeviceInfo({ uid, name: 'Unclaimed Device', location: null, status: 'unknown', lastSeen: null});
-                setError("Could not find this device in your list, or you are an admin viewing an unassigned device.");
+                // If admin can't find it, it's truly not found
+                if (isAdmin) {
+                    setError(`Device with UID ${uid} not found.`);
+                } else {
+                    setDeviceInfo({ uid, name: 'Unclaimed Device', location: null, status: 'unknown', lastSeen: null});
+                    setError("Could not find this device in your list.");
+                }
             } else {
                  setDeviceInfo(currentDevice);
                  setEditingName(currentDevice?.name || '');
