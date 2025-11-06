@@ -11,7 +11,7 @@ interface UserPayload {
   userId: string;
   email: string;
   name?: string;
-  role?: string; // Check for role instead of isAdmin
+  isAdmin?: boolean; // Check for isAdmin boolean
   iat: number;
   exp: number;
 }
@@ -82,7 +82,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 _id: decoded.userId,
                 name: decoded.name || 'User',
                 email: decoded.email,
-                isAdmin: decoded.role === 'admin', // Correctly check the role
+                isAdmin: decoded.isAdmin === true, // Correctly check the isAdmin boolean
                 devices: userDevices,
                 createdAt: new Date(decoded.iat * 1000).toISOString(),
             };
