@@ -11,8 +11,8 @@ interface UserPayload {
   userId: string;
   email: string;
   name?: string;
-  isAdmin?: boolean;
   role?: string;
+  isAdmin?: boolean;
   iat: number;
   exp: number;
 }
@@ -69,32 +69,21 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error("Token expired");
             }
             
-            const isUserAdmin = decoded.isAdmin === true || decoded.role === 'admin';
-
-            // Admins might not have a device list, or we fetch it from a different endpoint.
-            // For now, we fetch devices for all users for simplicity.
-            const devicesResponse = await fetch(`${API_URL}/user/devices`, {
+            const profileResponse = await fetch(`${API_URL}/user/profile`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
 
-            let userDevices: string[] = [];
-            if (devicesResponse.ok) {
-                const devicesData = await devicesResponse.json();
-                userDevices = devicesData.map((d: any) => d.uid);
+            if (!profileResponse.ok) {
+                const errorData = await profileResponse.text();
+                console.error("Profile fetch failed with status:", profileResponse.status, "and data:", errorData);
+                throw new Error("Failed to fetch user profile");
             }
             
-            const profile: UserProfile = {
-                _id: decoded.userId,
-                name: decoded.name || 'User',
-                email: decoded.email,
-                isAdmin: isUserAdmin,
-                devices: userDevices,
-                createdAt: new Date(decoded.iat * 1000).toISOString(),
-            };
+            const profile: UserProfile = await profileResponse.json();
 
             setUser(profile);
             setToken(currentToken);
-            setIsAdmin(isUserAdmin);
+            setIsAdmin(profile.isAdmin);
 
             return profile;
 
@@ -155,6 +144,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem('token', data.token);
                 const profile = await fetchUserProfile(data.token);
                  if (profile) {
+                    setIsLoading(false); // Set loading to false before navigation
                     router.push(profile.isAdmin ? '/dashboard/admin' : '/dashboard');
                     return true;
                 }
