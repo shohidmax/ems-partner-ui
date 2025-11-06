@@ -17,7 +17,6 @@ import { Separator } from '@/components/ui/separator';
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useTransition, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 
@@ -30,7 +29,6 @@ const formSchema = z.object({
 export function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
   const { login } = useUser();
 
@@ -48,11 +46,10 @@ export function LoginForm() {
       if (success) {
         toast({
           title: 'Login Successful',
-          description: 'Welcome back!',
+          description: 'Redirecting to your dashboard...',
         });
-        // The redirection is now handled by the useUser hook.
-        // router.push('/dashboard');
-        // router.refresh();
+        // Use a hard redirect to ensure the page reloads and the user context is correctly applied.
+        window.location.href = '/dashboard';
       } else {
         toast({
           title: 'Login Failed',
