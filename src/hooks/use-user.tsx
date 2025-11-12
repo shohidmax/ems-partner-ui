@@ -55,16 +55,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, []);
 
-    const fetchUserProfile = useCallback(async (currentToken: string): Promise<boolean> => {
+    const fetchUserProfile = useCallback(async (currentToken: string) => {
         try {
             const decoded: UserPayload = jwtDecode(currentToken);
             if (decoded.exp && decoded.exp * 1000 < Date.now()) {
                 throw new Error("Token expired");
             }
-            
+
             const isUserAdmin = decoded.isAdmin === true;
-            
-            // Fetch devices separately as it seems to be the reliable endpoint
+
             const devicesResponse = await fetch(`${API_URL}/user/devices`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
@@ -72,12 +71,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             let devices: string[] = [];
             if (devicesResponse.ok) {
                 const devicesData = await devicesResponse.json();
-                // Assuming the endpoint returns an array of device objects with a 'uid' property
                 if (Array.isArray(devicesData)) {
                   devices = devicesData.map((d: any) => d.uid);
                 }
             } else {
-                console.warn('Could not fetch user devices, proceeding without them.');
+                console.warn('Could not fetch user devices.');
             }
 
             const profile: UserProfile = {
@@ -93,12 +91,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(profile);
             setToken(currentToken);
             setIsAdmin(isUserAdmin);
-            return true;
 
         } catch (error) {
             console.error('Profile fetch or token validation failed:', error);
             logout();
-            return false;
         }
     }, [logout]);
     
@@ -152,16 +148,16 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
-                // After setting token, fetch profile which will handle state updates and redirection
-                const success = await fetchUserProfile(data.token);
-                setIsLoading(false); // Set loading to false after profile is fetched
-                return success;
+                await fetchUserProfile(data.token);
+                // The useEffect hook will handle redirection after state update.
+                return true;
             }
              throw new Error('No token received');
         } catch (error) {
             console.error('Login error:', error);
-            setIsLoading(false);
             return false;
+        } finally {
+            setIsLoading(false);
         }
     };
     
@@ -172,7 +168,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading, 
         login, 
         logout, 
-        fetchUserProfile: () => initializeAuth() // Reruns the whole auth initialization
+        fetchUserProfile: () => {
+            const token = localStorage.getItem('token');
+            if (token) fetchUserProfile(token);
+        }
     };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
