@@ -41,7 +41,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        // Ensure this runs only on client
         if (typeof window !== 'undefined' && ['/login', '/register', '/reset-password', '/'].indexOf(pathname) === -1) {
            router.replace('/login');
         }
@@ -97,10 +96,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         const isHomePage = pathname === '/';
         
-        // If not logged in, and not on a public page, redirect to login
         if (!user && !isAuthPage && !isHomePage) {
             router.replace('/login');
         }
+        
+        // If user is logged in and on an auth page, redirect them to dashboard
+        if (user && isAuthPage) {
+           router.replace(user.isAdmin ? '/dashboard/admin' : '/dashboard');
+        }
+
     }, [user, isLoading, pathname, router]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
@@ -120,17 +124,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
-                await fetchUserProfile(data.token);
-
-                // Re-fetch profile to determine where to redirect.
-                 const profileResponse = await fetch(`${API_URL}/api/user/profile`, {
-                    headers: { 'Authorization': `Bearer ${data.token}` }
-                });
-                const profile: UserProfile = await profileResponse.json();
-
-                // Manually redirect after successful login and profile fetch.
-                router.replace(profile.isAdmin ? '/dashboard/admin' : '/dashboard');
+                await fetchUserProfile(data.token); // This will set user and isAdmin state
                 
+                // After profile is fetched, the useEffect above will handle redirection.
                 return true;
             }
              throw new Error('No token received');
