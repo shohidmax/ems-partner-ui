@@ -4,9 +4,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-// We are not using jwt-decode anymore as we rely on the API for profile info.
-
-const API_URL = 'https://espserver3.onrender.com/api';
+const API_URL = 'https://espserver3.onrender.com';
 
 export interface UserProfile {
     _id: string;
@@ -43,31 +41,38 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        if (typeof window !== 'undefined') {
-            router.replace('/login');
+        // Ensure this runs only on client
+        if (typeof window !== 'undefined' && ['/login', '/register', '/reset-password', '/'].indexOf(pathname) === -1) {
+           router.replace('/login');
         }
-    }, [router]);
+    }, [router, pathname]);
 
     const fetchUserProfile = useCallback(async (tokenToVerify: string) => {
+        if (!tokenToVerify) {
+            logout();
+            return;
+        }
+
         try {
-            const response = await fetch(`${API_URL}/user/profile`, {
+            const response = await fetch(`${API_URL}/api/user/profile`, {
                 headers: { 'Authorization': `Bearer ${tokenToVerify}` }
             });
 
             if (!response.ok) {
-                // If the profile fetch fails (e.g., token expired), log out.
+                const errorBody = await response.text();
+                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
                 throw new Error("Failed to fetch profile, token might be invalid.");
             }
             
             const profileData: UserProfile = await response.json();
-
+            
             setUser(profileData);
             setToken(tokenToVerify);
             setIsAdmin(profileData.isAdmin === true);
 
         } catch (error) {
-            console.error('Profile fetch failed:', error);
-            logout(); // Critical: Log out user if token is invalid or API fails
+            console.error('Error during profile fetch:', error);
+            logout();
         }
     }, [logout]);
     
@@ -92,43 +97,40 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         const isHomePage = pathname === '/';
         
+        // If not logged in, and not on a public page, redirect to login
         if (!user && !isAuthPage && !isHomePage) {
             router.replace('/login');
         }
-
-        // If user is logged in and on an auth page, redirect to their dashboard
-        if (user && isAuthPage) {
-            router.replace(isAdmin ? '/dashboard/admin' : '/dashboard');
-        }
-
-    }, [user, isAdmin, isLoading, pathname, router]);
+    }, [user, isLoading, pathname, router]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_URL}/user/login`, {
+            const response = await fetch(`${API_URL}/api/user/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
 
-            if (!response.ok) throw new Error('Login failed');
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 throw new Error(errorData.message || 'Login failed');
+            }
             
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
                 await fetchUserProfile(data.token);
 
-                // After fetching profile, manually redirect based on admin status
-                // We read isAdmin directly from the fetched profile, not the state,
-                // as state update might be asynchronous.
-                const profileResponse = await fetch(`${API_URL}/user/profile`, {
+                // Re-fetch profile to determine where to redirect.
+                 const profileResponse = await fetch(`${API_URL}/api/user/profile`, {
                     headers: { 'Authorization': `Bearer ${data.token}` }
                 });
                 const profile: UserProfile = await profileResponse.json();
 
+                // Manually redirect after successful login and profile fetch.
                 router.replace(profile.isAdmin ? '/dashboard/admin' : '/dashboard');
-
+                
                 return true;
             }
              throw new Error('No token received');
