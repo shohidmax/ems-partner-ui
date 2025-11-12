@@ -3,8 +3,17 @@
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { jwtDecode } from 'jwt-decode';
 
 const API_URL = 'https://espserver3.onrender.com';
+
+// This payload reflects the structure of the JWT token from your server
+interface UserPayload {
+    userId: string;
+    email: string;
+    iat: number;
+    exp: number;
+}
 
 export interface UserProfile {
     _id: string;
@@ -41,7 +50,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        if (typeof window !== 'undefined' && ['/login', '/register', '/reset-password', '/'].indexOf(pathname) === -1) {
+        // Redirect to login only if not already on a public page
+        if (typeof window !== 'undefined' && !['/login', '/register', '/reset-password', '/'].includes(pathname)) {
            router.replace('/login');
         }
     }, [router, pathname]);
@@ -51,27 +61,43 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             logout();
             return;
         }
-
+    
         try {
-            const response = await fetch(`${API_URL}/api/user/profile`, {
+            // Directly fetch the user's assigned devices
+            const devicesResponse = await fetch(`${API_URL}/api/user/devices`, {
                 headers: { 'Authorization': `Bearer ${tokenToVerify}` }
             });
-
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
-                throw new Error("Failed to fetch profile, token might be invalid.");
+    
+            if (!devicesResponse.ok) {
+                 // If fetching devices fails, token might be bad, so log out
+                throw new Error("Failed to fetch user devices, token might be invalid.");
             }
             
-            const profileData: UserProfile = await response.json();
+            const devices: { uid: string }[] = await devicesResponse.json();
+            const deviceUIDs = devices.map(d => d.uid);
             
-            setUser(profileData);
-            setToken(tokenToVerify);
-            setIsAdmin(profileData.isAdmin === true);
+            // Decode token to get user info like email and ID
+            const decoded: UserPayload = jwtDecode(tokenToVerify);
 
+            // Reconstruct a partial but functional user profile on the client
+            const isUserAdmin = decoded.email === 'shohidmax@gmail.com';
+
+            const partialProfile: UserProfile = {
+                _id: decoded.userId,
+                email: decoded.email,
+                name: 'User', // Name is not in token, provide a default
+                isAdmin: isUserAdmin,
+                devices: deviceUIDs,
+                createdAt: new Date(decoded.iat * 1000).toISOString(), // Estimate creation from 'issued at' time
+            };
+            
+            setUser(partialProfile);
+            setToken(tokenToVerify);
+            setIsAdmin(isUserAdmin);
+    
         } catch (error) {
             console.error('Error during profile fetch:', error);
-            logout();
+            logout(); // If any part fails, logout for safety
         }
     }, [logout]);
     
@@ -100,11 +126,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             router.replace('/login');
         }
         
-        // If user is logged in and on an auth page, redirect them to dashboard
-        if (user && isAuthPage) {
-           router.replace(user.isAdmin ? '/dashboard/admin' : '/dashboard');
-        }
-
     }, [user, isLoading, pathname, router]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
@@ -124,9 +145,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
-                await fetchUserProfile(data.token); // This will set user and isAdmin state
+                await fetchUserProfile(data.token);
                 
-                // After profile is fetched, the useEffect above will handle redirection.
+                // After profile is fetched, determine where to redirect
+                const decoded: UserPayload = jwtDecode(data.token);
+                const isUserAdmin = decoded.email === 'shohidmax@gmail.com';
+                router.replace(isUserAdmin ? '/dashboard/admin' : '/dashboard');
+
                 return true;
             }
              throw new Error('No token received');
