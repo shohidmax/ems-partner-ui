@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 
 
-const API_URL_BASE = 'https://espserver3.onrender.com/api';
+const API_URL_BASE = 'https://esp-web-server2.onrender.com/api';
 
 interface DeviceInfo {
   uid: string;

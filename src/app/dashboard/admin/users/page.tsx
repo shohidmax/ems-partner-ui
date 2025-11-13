@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_BASE_URL = 'https://espserver3.onrender.com/api';
+const API_BASE_URL = 'https://esp-web-server2.onrender.com/api';
 
 interface UserData {
   _id: string;
@@ -47,7 +47,8 @@ export default function AdminUserManagerPage() {
             const errorData = await response.json();
             throw new Error(errorData.message || `Failed to fetch users: ${response.statusText}`);
         } else {
-            throw new Error(`Server returned a non-JSON response. Status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Server returned a non-JSON response. Status: ${response.status} - ${errorText}`);
         }
       }
       
@@ -72,15 +73,17 @@ export default function AdminUserManagerPage() {
     
     // Optimistically update UI
     setUsers(users.map(u => u._id === targetUser._id ? { ...u, isAdmin: newIsAdmin } : u));
+    
+    const endpoint = newIsAdmin ? 'make-admin' : 'remove-admin';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/users/${targetUser._id}/role`, {
-        method: 'PUT',
+      const response = await fetch(`${API_BASE_URL}/admin/user/${endpoint}`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ isAdmin: newIsAdmin })
+        body: JSON.stringify({ email: targetUser.email })
       });
 
       const result = await response.json();

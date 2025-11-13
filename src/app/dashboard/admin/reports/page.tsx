@@ -12,7 +12,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
-const API_URL = 'https://espserver3.onrender.com/api/admin/report';
+const API_URL = 'https://esp-web-server2.onrender.com/api/admin/report';
 
 type ReportPeriod = 'daily' | 'monthly' | 'yearly';
 

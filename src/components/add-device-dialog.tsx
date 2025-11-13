@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 import { Loader2 } from 'lucide-react';
 
-const API_URL = 'https://espserver3.onrender.com/api/user/device/add';
+const API_URL = 'https://esp-web-server2.onrender.com/api/user/device/add';
 
 interface AddDeviceDialogProps {
     open: boolean;

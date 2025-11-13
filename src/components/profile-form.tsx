@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -23,11 +24,13 @@ import { useToast } from '@/hooks/use-toast';
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
+  mobile: z.string().optional(),
+  address: z.string().optional(),
 });
 
 export function ProfileForm() {
   const [isPending, startTransition] = useTransition();
-  const { user, isLoading, token } = useUser();
+  const { user, isLoading, token, fetchUserProfile } = useUser();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -35,6 +38,8 @@ export function ProfileForm() {
     defaultValues: {
       name: '',
       email: '',
+      mobile: '',
+      address: '',
     },
   });
   
@@ -43,25 +48,36 @@ export function ProfileForm() {
         form.reset({
             name: user.name || '',
             email: user.email || '',
+            mobile: user.mobile || '',
+            address: user.address || '',
         });
     }
   }, [user, form]);
 
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) return;
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user || !token) return;
 
     startTransition(async () => {
       try {
-        // In a real app, you would send this to your backend to update the user profile
-        // For this example, we'll just show a success message.
-        console.log("Updating profile with:", values);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        const response = await fetch('https://esp-web-server2.onrender.com/api/user/profile/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(values),
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "Failed to update profile.");
+
         toast({
             title: 'Success!',
-            description: 'Your profile has been updated. (This is a demo, no data was changed).',
+            description: 'Your profile has been updated.',
         });
+        await fetchUserProfile(); // Refetch to get latest data
+        
       } catch (error: any) {
          toast({
             title: 'Error updating profile',
@@ -123,6 +139,32 @@ export function ProfileForm() {
                   </div>
                 </FormControl>
                  <p className="text-xs text-muted-foreground">You cannot change your email address.</p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="mobile"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mobile Number</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your mobile number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your address" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

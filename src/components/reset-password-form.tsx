@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -17,6 +18,8 @@ import { Mail, Loader2 } from 'lucide-react';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+const API_URL = 'https://esp-web-server2.onrender.com/api/user/password/forgot';
+
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
 });
@@ -35,13 +38,18 @@ export function ResetPasswordForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        // In a real app, you would call your backend or Firebase here.
-        console.log("Sending password reset for:", values.email);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(values),
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "Failed to send reset email.");
 
         toast({
-          title: 'Password Reset Email Sent (Demo)',
-          description: 'If this were a real app, an email would be on its way to you.',
+          title: 'Password Reset Email Sent',
+          description: result.message,
         });
         form.reset();
       } catch (error: any) {

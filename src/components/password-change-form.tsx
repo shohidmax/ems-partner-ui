@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -18,10 +19,10 @@ import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://espserver3.onrender.com/api/user/change-password'; // Example endpoint
+const API_URL = 'https://esp-web-server2.onrender.com/api/user/password/change';
 
 const formSchema = z.object({
-  currentPassword: z.string().min(1, { message: 'Current password is required.' }),
+  oldPassword: z.string().min(1, { message: 'Current password is required.' }),
   newPassword: z.string().min(8, { message: 'New password must be at least 8 characters.' }),
 });
 
@@ -35,7 +36,7 @@ export function PasswordChangeForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      currentPassword: '',
+      oldPassword: '',
       newPassword: '',
     },
   });
@@ -59,14 +60,14 @@ export function PasswordChangeForm() {
 
         toast({
           title: 'Success',
-          description: 'Your password has been updated. This is a demo; no password was changed.',
+          description: 'Your password has been updated.',
         });
         form.reset();
       } catch (error: any) {
         console.error('Password update error:', error);
         toast({
           title: 'Error updating password',
-          description: "This is a demo. Your backend may not have this feature implemented.",
+          description: error.message,
           variant: 'destructive',
         });
       }
@@ -76,12 +77,12 @@ export function PasswordChangeForm() {
   return (
     <div>
       <h3 className="text-lg font-medium">Change Password</h3>
-      <p className="text-sm text-muted-foreground mb-4">Update your password here. (This is a non-functional demo)</p>
+      <p className="text-sm text-muted-foreground mb-4">Update your password here.</p>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <FormField
             control={form.control}
-            name="currentPassword"
+            name="oldPassword"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Current Password</FormLabel>

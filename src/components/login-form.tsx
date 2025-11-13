@@ -45,17 +45,19 @@ export function LoginForm() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
-      const success = await login(values.email, values.password);
-      if (success) {
-        toast({
-          title: 'Login Successful',
-          description: 'Welcome back! Redirecting...',
-        });
-        // The redirection is now handled by the useUser hook via window.location
-      } else {
-        toast({
+      try {
+        const success = await login(values.email, values.password);
+        if (success) {
+          toast({
+            title: 'Login Successful',
+            description: 'Welcome back! Redirecting...',
+          });
+        // The redirection is now handled by the useUser hook
+        } 
+      } catch (error: any) {
+         toast({
           title: 'Login Failed',
-          description: 'Invalid email or password. Please try again.',
+          description: error.message || 'Invalid email or password. Please try again.',
           variant: 'destructive',
         });
       }
