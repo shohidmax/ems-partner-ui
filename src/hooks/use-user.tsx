@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
 const API_URL = 'https://espserver3.onrender.com';
+const ADMIN_EMAIL = 'shohidmax@gmail.com'; // Admin email for client-side check
 
 interface JwtPayload {
     userId: string;
@@ -54,49 +55,50 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAdmin(false);
         setIsLoading(false);
         
-        if (typeof window !== 'undefined' && !['/login', '/register', '/reset-password', '/'].includes(pathname)) {
+        const isProtectedPage = pathname.startsWith('/dashboard');
+        if (isProtectedPage && typeof window !== 'undefined') {
            router.replace('/login');
         }
     }, [router, pathname]);
 
-    const fetchUserProfile = useCallback(async (currentToken: string) => {
+
+    // This function sets user state from a valid token.
+    const setUserFromToken = useCallback((currentToken: string) => {
         try {
-            const response = await fetch(`${API_URL}/api/user/profile`, {
-                headers: {
-                    'Authorization': `Bearer ${currentToken}`
-                }
-            });
+            const decoded: JwtPayload = jwtDecode(currentToken);
+            const userIsAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
-                throw new Error("Failed to fetch profile, token might be invalid.");
-            }
-            
-            const profileData: UserProfile = await response.json();
-            
-            setUser(profileData);
-            setIsAdmin(profileData.isAdmin);
+            const profile: UserProfile = {
+                _id: decoded.userId,
+                email: decoded.email,
+                name: decoded.name || decoded.email.split('@')[0],
+                isAdmin: userIsAdmin,
+                devices: [], // This can be populated later by specific components if needed
+                createdAt: new Date(decoded.iat * 1000).toISOString(),
+            };
+
+            setUser(profile);
             setToken(currentToken);
-
+            setIsAdmin(userIsAdmin);
+            return true;
         } catch (error) {
-            console.error("Error fetching user profile:", error);
+            console.error("Invalid token:", error);
             logout();
+            return false;
         }
     }, [logout]);
 
 
     const initializeAuth = useCallback(async () => {
-        setIsLoading(true);
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
         if (tokenFromStorage) {
-            try {
+             try {
                 const decoded: JwtPayload = jwtDecode(tokenFromStorage);
                 if (decoded.exp * 1000 < Date.now()) {
                     logout();
                 } else {
-                    await fetchUserProfile(tokenFromStorage);
+                    setUserFromToken(tokenFromStorage);
                 }
             } catch (error) {
                 console.error("Invalid token during initialization:", error);
@@ -104,7 +106,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
         setIsLoading(false);
-    }, [logout, fetchUserProfile]);
+    }, [logout, setUserFromToken]);
 
 
     useEffect(() => {
@@ -146,20 +148,31 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     localStorage.setItem('token', data.token);
                 }
                 
-                await fetchUserProfile(data.token);
-                // The useEffect will handle the redirection.
-                return true;
+                // Directly set user from the new token
+                const success = setUserFromToken(data.token);
+                setIsLoading(false);
+                return success;
             }
              throw new Error('No token received');
         } catch (error) {
             console.error('Login error:', error);
             logout();
-            return false;
-        } finally {
             setIsLoading(false);
+            return false;
         }
     };
     
+    
+    // This function can be used to manually re-fetch data if ever needed,
+    // but the core auth flow no longer depends on it.
+    const fetchUserProfile = async () => {
+         const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+         if (currentToken) {
+            // In a more complex app, you might fetch non-critical profile data here.
+            // For now, we just ensure the user state is set from the token.
+            setUserFromToken(currentToken);
+         }
+    }
     
     const value = { 
         user, 
@@ -168,13 +181,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading, 
         login, 
         logout, 
-        // Provide a wrapper that calls fetchUserProfile with the current token
-        fetchUserProfile: async () => {
-            const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-            if (currentToken) {
-                await fetchUserProfile(currentToken);
-            }
-        }
+        fetchUserProfile
     };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
