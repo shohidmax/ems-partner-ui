@@ -3,16 +3,9 @@
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { jwtDecode, type JwtPayload as BaseJwtPayload } from 'jwt-decode';
+import { jwtDecode, type JwtPayload } from 'jwt-decode';
 
 const API_URL = 'https://espserver3.onrender.com';
-const ADMIN_EMAIL = 'shohidmax@gmail.com'; // Hardcoded admin email
-
-interface JwtPayload extends BaseJwtPayload {
-    userId: string;
-    email: string;
-    name?: string;
-}
 
 export interface UserProfile {
     _id: string;
@@ -22,6 +15,8 @@ export interface UserProfile {
     createdAt: string;
     isAdmin: boolean;
     photoURL?: string; 
+    address?: string;
+    mobile?: string;
 }
 
 interface UserContextType {
@@ -54,18 +49,30 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         router.replace('/login');
     }, [router]);
 
-    const createUserProfileFromToken = (decodedToken: JwtPayload): UserProfile => {
-        const userIsAdmin = decodedToken.email === ADMIN_EMAIL;
-        setIsAdmin(userIsAdmin);
-        return {
-            _id: decodedToken.userId,
-            email: decodedToken.email,
-            name: decodedToken.name || decodedToken.email.split('@')[0],
-            isAdmin: userIsAdmin,
-            devices: [], // Devices will be fetched separately on their respective pages
-            createdAt: new Date(decodedToken.iat! * 1000).toISOString(),
-        };
-    };
+    const fetchUserProfile = useCallback(async (authToken: string): Promise<UserProfile | null> => {
+        try {
+            const response = await fetch(`${API_URL}/api/user/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
+                throw new Error("Failed to fetch profile, token might be invalid.");
+            }
+            
+            const profileData: UserProfile = await response.json();
+            return profileData;
+
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+            logout();
+            return null;
+        }
+    }, [logout]);
+
 
     const initializeAuth = useCallback(async () => {
         setIsLoading(true);
@@ -77,9 +84,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 if (decoded.exp && decoded.exp * 1000 < Date.now()) {
                     logout();
                 } else {
-                    const profile = createUserProfileFromToken(decoded);
-                    setUser(profile);
-                    setToken(tokenFromStorage);
+                    const profile = await fetchUserProfile(tokenFromStorage);
+                    if (profile) {
+                        setUser(profile);
+                        setToken(tokenFromStorage);
+                        setIsAdmin(profile.isAdmin);
+                    }
                 }
             } catch (error) {
                 console.error("Invalid token during initialization:", error);
@@ -87,7 +97,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
         setIsLoading(false);
-    }, [logout]);
+    }, [logout, fetchUserProfile]);
+
 
     useEffect(() => {
         initializeAuth();
@@ -101,10 +112,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         if (!user && !isAuthPage) {
             router.replace('/login');
         } else if (user && isAuthPage) {
-            router.replace(isAdmin ? '/dashboard/admin' : '/dashboard');
+             router.replace(user.isAdmin ? '/dashboard/admin' : '/dashboard');
         }
         
-    }, [user, isAdmin, isLoading, pathname, router]);
+    }, [user, isLoading, pathname, router]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
@@ -126,17 +137,19 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('token', data.token);
                 }
-                const decoded: JwtPayload = jwtDecode(data.token);
-                const profile = createUserProfileFromToken(decoded);
+                const profile = await fetchUserProfile(data.token);
                 
-                setUser(profile);
-                setToken(data.token);
-                setIsLoading(false);
-                router.replace(profile.isAdmin ? '/dashboard/admin' : '/dashboard');
-                return true;
+                if (profile) {
+                    setUser(profile);
+                    setToken(data.token);
+                    setIsAdmin(profile.isAdmin);
+                    setIsLoading(false);
+                    router.replace(profile.isAdmin ? '/dashboard/admin' : '/dashboard');
+                    return true;
+                }
             }
 
-            throw new Error('No token received');
+            throw new Error('Login process failed after token retrieval.');
         } catch (error) {
             console.error('Login error:', error);
             logout();
@@ -145,12 +158,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    // This function will now re-run the initialization logic
-    // which is useful for pages that add devices to a user, etc.
-    const fetchUserProfile = async () => {
-        await initializeAuth();
-    }
-    
     const value = { 
         user, 
         token, 
@@ -158,7 +165,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading, 
         login, 
         logout, 
-        fetchUserProfile,
+        fetchUserProfile: async () => { await initializeAuth(); },
     };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
