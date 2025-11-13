@@ -10,9 +10,8 @@ const API_URL = 'https://esp-web-server2.onrender.com';
 interface DecodedToken extends JwtPayload {
     userId: string;
     email: string;
-    name?: string; // name might not be in the token, but we can handle that
+    name?: string;
 }
-
 
 export interface UserProfile {
     _id: string;
@@ -53,61 +52,59 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        setIsLoading(false); // Ensure loading is false after logout
+        setIsLoading(false); 
         if (!['/login', '/register', '/'].includes(pathname)) {
             router.replace('/login');
         }
     }, [router, pathname]);
 
-    const processToken = useCallback((authToken: string) => {
+    const fetchUserProfile = useCallback(async () => {
+        const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        if (!currentToken) {
+            throw new Error("No token found");
+        }
+
         try {
-            const decoded: DecodedToken = jwtDecode(authToken);
-            if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-                logout();
-                return;
+            const response = await fetch(`${API_URL}/api/user/profile`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+             if (!response.ok) {
+                const errorBody = await response.text();
+                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
+                throw new Error("Failed to fetch profile, token might be invalid.");
             }
-
-            const userIsAdmin = decoded.email.toLowerCase() === 'shohidmax@gmail.com';
-            
-            // Create a UserProfile object directly from the token
-            const profile: UserProfile = {
-                _id: decoded.userId,
-                email: decoded.email,
-                name: decoded.name || decoded.email.split('@')[0], // Fallback for name
-                isAdmin: userIsAdmin,
-                // These fields are not in the token and will be fetched separately if needed
-                devices: user?.devices || [],
-                createdAt: user?.createdAt || new Date().toISOString(),
-                address: user?.address,
-                mobile: user?.mobile,
-            };
-
-            setUser(profile);
-            setIsAdmin(userIsAdmin);
-            setToken(authToken);
+            const fullProfile: UserProfile = await response.json();
+            setUser(fullProfile);
+            setIsAdmin(fullProfile.isAdmin);
+            setToken(currentToken);
 
         } catch (error) {
-            console.error("Token processing failed:", error);
-            logout();
+             console.error("Error fetching full user profile:", error);
+             logout(); // Logout on profile fetch failure
+             throw error; // Re-throw to inform caller
         }
-    }, [logout, user]);
-
-
+    }, [logout]);
+    
     const initializeAuth = useCallback(async () => {
         setIsLoading(true);
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
         if (tokenFromStorage) {
-            processToken(tokenFromStorage);
+            try {
+                await fetchUserProfile();
+            } catch (error) {
+                console.error("Initialization failed, logging out:", error);
+                // fetchUserProfile already handles logout on failure
+            }
         }
         setIsLoading(false);
-    }, [processToken]);
+    }, [fetchUserProfile]);
 
 
     useEffect(() => {
         initializeAuth();
-    }, [initializeAuth]);
-    
+    }, []); // Empty dependency array to run only once on mount
+
     useEffect(() => {
         if (isLoading) return;
 
@@ -142,7 +139,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('token', data.token);
                 }
-                processToken(data.token);
+                await fetchUserProfile(); // Fetch full profile after successful login
                 return true;
             }
 
@@ -155,30 +152,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             setIsLoading(false);
         }
     };
-    
-    // This function will now fetch the full profile from the server if needed,
-    // but the core auth flow no longer depends on it.
-    const fetchUserProfile = async () => {
-        const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        if (!currentToken) return;
-
-        try {
-            const response = await fetch(`${API_URL}/api/user/profile`, {
-                headers: { 'Authorization': `Bearer ${currentToken}` }
-            });
-             if (!response.ok) {
-                // We will not log out here, as the token might still be valid
-                console.warn("Could not fetch full profile, but user is still logged in.", response.status);
-                return;
-            }
-            const fullProfile: UserProfile = await response.json();
-            setUser(fullProfile); // Update the state with the full profile
-            setIsAdmin(fullProfile.isAdmin);
-
-        } catch (error) {
-             console.warn("Error fetching full user profile:", error);
-        }
-    }
     
     const value = { 
         user, 
