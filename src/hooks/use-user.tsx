@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
 const API_URL = 'https://espserver3.onrender.com';
-const ADMIN_EMAIL = 'shohidmax@gmail.com'; // Admin email for client-side check
+const ADMIN_EMAIL = 'shohidmax@gmail.com'; // Your admin email
 
 interface JwtPayload {
     userId: string;
@@ -53,11 +53,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        setIsLoading(false); // Done loading
+        setIsLoading(false); 
         router.replace('/login');
     }, [router]);
 
-    const setUserFromToken = useCallback((currentToken: string) => {
+    const setUserAndAdminStatus = useCallback((currentToken: string) => {
         try {
             const decoded: JwtPayload = jwtDecode(currentToken);
             const userIsAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -67,33 +67,32 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 email: decoded.email,
                 name: decoded.name || decoded.email.split('@')[0],
                 isAdmin: userIsAdmin,
-                devices: [], 
+                devices: user?.devices || [], // Keep existing devices if re-authenticating
                 createdAt: new Date(decoded.iat * 1000).toISOString(),
             };
-
+            
             setUser(profile);
             setToken(currentToken);
             setIsAdmin(userIsAdmin);
-            return true;
+            return profile;
         } catch (error) {
             console.error("Invalid token:", error);
             logout();
-            return false;
+            return null;
         }
-    }, [logout]);
-
+    }, [logout, user?.devices]);
 
     const initializeAuth = useCallback(async () => {
         setIsLoading(true);
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
         if (tokenFromStorage) {
-             try {
+            try {
                 const decoded: JwtPayload = jwtDecode(tokenFromStorage);
                 if (decoded.exp * 1000 < Date.now()) {
                     logout();
                 } else {
-                    setUserFromToken(tokenFromStorage);
+                    setUserAndAdminStatus(tokenFromStorage);
                 }
             } catch (error) {
                 console.error("Invalid token during initialization:", error);
@@ -101,7 +100,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
         setIsLoading(false);
-    }, [logout, setUserFromToken]);
+    }, [logout, setUserAndAdminStatus]);
 
 
     useEffect(() => {
@@ -115,8 +114,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (!user && !isAuthPage) {
             router.replace('/login');
-        } 
-        else if (user && isAuthPage) {
+        } else if (user && isAuthPage) {
             router.replace(isAdmin ? '/dashboard/admin' : '/dashboard');
         }
         
@@ -141,11 +139,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('token', data.token);
                 }
-                const success = setUserFromToken(data.token);
+                const profile = setUserAndAdminStatus(data.token);
                 setIsLoading(false);
-                return success;
+                if(profile) {
+                    router.replace(profile.isAdmin ? '/dashboard/admin' : '/dashboard');
+                    return true;
+                }
+                return false;
             }
-             throw new Error('No token received');
+            throw new Error('No token received');
         } catch (error) {
             console.error('Login error:', error);
             logout();
@@ -154,14 +156,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    // This function can be used to manually re-fetch data if ever needed
     const fetchUserProfile = async () => {
          const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
          if (currentToken && !user) {
-            // Only set from token if user is not already set
-            setUserFromToken(currentToken);
+            setUserAndAdminStatus(currentToken);
          }
-    }
+    };
     
     const value = { 
         user, 
