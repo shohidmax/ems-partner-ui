@@ -11,10 +11,9 @@ const API_URL = 'https://espserver3.onrender.com';
 interface UserPayload {
     userId: string;
     email: string;
+    name?: string; // Optional: depending on what server puts in token
     iat: number;
     exp: number;
-    // We expect `isAdmin` to be in the token for immediate role-checking
-    isAdmin?: boolean; 
 }
 
 export interface UserProfile {
@@ -39,6 +38,10 @@ interface UserContextType {
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// IMPORTANT: This email is now the source of truth for admin status on the frontend.
+// It MUST match the ADMIN_EMAIL on your backend server.
+const ADMIN_EMAIL = 'shohidmax@gmail.com';
+
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [router, pathname]);
 
+
     const fetchUserProfile = useCallback(async (tokenToVerify: string) => {
         if (!tokenToVerify) {
             logout();
@@ -64,26 +68,27 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/user/profile`, {
-                headers: { 'Authorization': `Bearer ${tokenToVerify}` }
-            });
+            const decoded: UserPayload = jwtDecode(tokenToVerify);
+            const isUserAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
-                throw new Error("Failed to fetch profile, token might be invalid.");
-            }
+            // Create a mock user profile from token data.
+            // This avoids the unreliable /api/user/profile call.
+            const profile: UserProfile = {
+                _id: decoded.userId,
+                email: decoded.email,
+                name: decoded.name || 'User', // Use name from token if available, otherwise default
+                isAdmin: isUserAdmin,
+                devices: [], // This will be fetched on pages that need it.
+                createdAt: new Date(decoded.iat * 1000).toISOString(),
+            };
             
-            const profileData: UserProfile = await response.json();
-            
-            // Set all states together to avoid race conditions
-            setUser(profileData);
-            setIsAdmin(profileData.isAdmin);
+            setUser(profile);
+            setIsAdmin(isUserAdmin);
             setToken(tokenToVerify);
 
         } catch (error) {
-            console.error('Error during profile fetch:', error);
-            logout(); // If any part fails, logout for safety
+            console.error('Error decoding token or setting up user:', error);
+            logout();
         }
     }, [logout]);
     
@@ -92,12 +97,22 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
         if (tokenFromStorage) {
-            await fetchUserProfile(tokenFromStorage);
-        } else {
-            // If no token, no need to do anything, just stop loading
+            try {
+                const decoded: UserPayload = jwtDecode(tokenFromStorage);
+                if (decoded.exp * 1000 < Date.now()) {
+                    // Token is expired
+                    logout();
+                } else {
+                    // Token is valid, set up the user state from it
+                    await fetchUserProfile(tokenFromStorage);
+                }
+            } catch (e) {
+                console.error("Invalid token in storage", e);
+                logout();
+            }
         }
         setIsLoading(false);
-    }, [fetchUserProfile]);
+    }, [fetchUserProfile, logout]);
 
 
     useEffect(() => {
@@ -112,9 +127,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (!user && !isAuthPage && !isHomePage) {
             router.replace('/login');
+        } else if (user && isAuthPage) {
+            router.replace(isAdmin ? '/dashboard/admin' : '/dashboard');
         }
         
-    }, [user, isLoading, pathname, router]);
+    }, [user, isAdmin, isLoading, pathname, router]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
@@ -133,27 +150,19 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
-                // After setting token, fetch profile to get full user data and role
+                // Set up user state directly from the new token
                 await fetchUserProfile(data.token);
-                
-                // fetchUserProfile sets isAdmin state, so we can now use it.
+
+                // After fetchUserProfile, isAdmin state is set, so we can redirect correctly
                 const decoded: UserPayload = jwtDecode(data.token);
-                const userIsAdmin = decoded.email === 'shohidmax@gmail.com'; // Fallback check
-                
-                // We fetch the profile again to be sure
-                const profileResponse = await fetch(`${API_URL}/api/user/profile`, {
-                    headers: { 'Authorization': `Bearer ${data.token}` }
-                });
-                const finalProfile: UserProfile = await profileResponse.json();
+                const userIsAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-                router.replace(finalProfile.isAdmin ? '/dashboard/admin' : '/dashboard');
-
+                router.replace(userIsAdmin ? '/dashboard/admin' : '/dashboard');
                 return true;
             }
              throw new Error('No token received');
         } catch (error) {
             console.error('Login error:', error);
-            // Ensure state is clean after a failed login
             logout();
             return false;
         } finally {
