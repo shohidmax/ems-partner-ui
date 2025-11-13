@@ -1,17 +1,16 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
 const API_URL = 'https://espserver3.onrender.com';
 
-// This payload reflects the structure of the JWT token from your server
 interface UserPayload {
     userId: string;
     email: string;
-    name?: string; // Optional: depending on what server puts in token
+    name?: string;
     iat: number;
     exp: number;
 }
@@ -38,28 +37,28 @@ interface UserContextType {
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// IMPORTANT: This email is now the source of truth for admin status on the frontend.
-// It MUST match the ADMIN_EMAIL on your backend server.
+// This email is the source of truth for admin status on the frontend.
+// It MUST match the ADMIN_EMAIL on the backend server for consistency.
 const ADMIN_EMAIL = 'shohidmax@gmail.com';
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [token, setToken] = useState<string | null>(null);
-    const [isAdmin, setIsAdmin] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
+
+    const isAdmin = useMemo(() => !!user && user.isAdmin, [user]);
 
     const logout = useCallback(() => {
         localStorage.removeItem('token');
         setUser(null);
         setToken(null);
-        setIsAdmin(false);
+        // This check prevents redirect loops on public pages
         if (typeof window !== 'undefined' && !['/login', '/register', '/reset-password', '/'].includes(pathname)) {
            router.replace('/login');
         }
     }, [router, pathname]);
-
 
     const fetchUserProfile = useCallback(async (tokenToVerify: string) => {
         if (!tokenToVerify) {
@@ -71,23 +70,33 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const decoded: UserPayload = jwtDecode(tokenToVerify);
             const isUserAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
-            // Create a mock user profile from token data.
-            // This avoids the unreliable /api/user/profile call.
+            // Fetch device list separately, as it's not in the JWT
+            const devicesResponse = await fetch(`${API_URL}/api/user/devices`, {
+                headers: { 'Authorization': `Bearer ${tokenToVerify}` }
+            });
+
+            let userDevices: string[] = [];
+            if (devicesResponse.ok) {
+                const devicesData: {uid: string}[] = await devicesResponse.json();
+                userDevices = devicesData.map(d => d.uid);
+            } else {
+                 console.warn("Could not fetch user devices, but proceeding with login.");
+            }
+            
             const profile: UserProfile = {
                 _id: decoded.userId,
                 email: decoded.email,
-                name: decoded.name || 'User', // Use name from token if available, otherwise default
+                name: decoded.name || 'User',
                 isAdmin: isUserAdmin,
-                devices: [], // This will be fetched on pages that need it.
+                devices: userDevices,
                 createdAt: new Date(decoded.iat * 1000).toISOString(),
             };
             
             setUser(profile);
-            setIsAdmin(isUserAdmin);
             setToken(tokenToVerify);
 
         } catch (error) {
-            console.error('Error decoding token or setting up user:', error);
+            console.error('Error setting up user from token:', error);
             logout();
         }
     }, [logout]);
@@ -100,10 +109,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             try {
                 const decoded: UserPayload = jwtDecode(tokenFromStorage);
                 if (decoded.exp * 1000 < Date.now()) {
-                    // Token is expired
                     logout();
                 } else {
-                    // Token is valid, set up the user state from it
                     await fetchUserProfile(tokenFromStorage);
                 }
             } catch (e) {
@@ -150,10 +157,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
-                // Set up user state directly from the new token
                 await fetchUserProfile(data.token);
 
-                // After fetchUserProfile, isAdmin state is set, so we can redirect correctly
+                // We need to decode here again to decide the redirect path immediately
                 const decoded: UserPayload = jwtDecode(data.token);
                 const userIsAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -178,7 +184,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         login, 
         logout, 
         fetchUserProfile: () => {
-            const currentToken = localStorage.getItem('token');
+            const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
             if (currentToken) {
                 return fetchUserProfile(currentToken);
             }
