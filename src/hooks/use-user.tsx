@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 
 const API_URL = 'https://espserver3.onrender.com';
 
-interface UserPayload {
+interface JwtPayload {
     userId: string;
     email: string;
     name?: string;
@@ -37,23 +37,20 @@ interface UserContextType {
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// This email is the source of truth for admin status on the frontend.
-// It MUST match the ADMIN_EMAIL on the backend server for consistency.
-const ADMIN_EMAIL = 'shohidmax@gmail.com';
-
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
-
-    const isAdmin = useMemo(() => !!user && user.isAdmin, [user]);
 
     const logout = useCallback(() => {
         localStorage.removeItem('token');
         setUser(null);
         setToken(null);
+        setIsAdmin(false);
+        setIsLoading(false);
         // This check prevents redirect loops on public pages
         if (typeof window !== 'undefined' && !['/login', '/register', '/reset-password', '/'].includes(pathname)) {
            router.replace('/login');
@@ -67,33 +64,21 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-            const decoded: UserPayload = jwtDecode(tokenToVerify);
-            const isUserAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
-            // Fetch device list separately, as it's not in the JWT
-            const devicesResponse = await fetch(`${API_URL}/api/user/devices`, {
+            const response = await fetch(`${API_URL}/api/user/profile`, {
                 headers: { 'Authorization': `Bearer ${tokenToVerify}` }
             });
 
-            let userDevices: string[] = [];
-            if (devicesResponse.ok) {
-                const devicesData: {uid: string}[] = await devicesResponse.json();
-                userDevices = devicesData.map(d => d.uid);
-            } else {
-                 console.warn("Could not fetch user devices, but proceeding with login.");
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
+                throw new Error("Failed to fetch profile, token might be invalid.");
             }
             
-            const profile: UserProfile = {
-                _id: decoded.userId,
-                email: decoded.email,
-                name: decoded.name || 'User',
-                isAdmin: isUserAdmin,
-                devices: userDevices,
-                createdAt: new Date(decoded.iat * 1000).toISOString(),
-            };
+            const profileData: UserProfile = await response.json();
             
-            setUser(profile);
+            setUser(profileData);
             setToken(tokenToVerify);
+            setIsAdmin(profileData.isAdmin);
 
         } catch (error) {
             console.error('Error setting up user from token:', error);
@@ -107,7 +92,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (tokenFromStorage) {
             try {
-                const decoded: UserPayload = jwtDecode(tokenFromStorage);
+                const decoded: JwtPayload = jwtDecode(tokenFromStorage);
                 if (decoded.exp * 1000 < Date.now()) {
                     logout();
                 } else {
@@ -121,12 +106,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
     }, [fetchUserProfile, logout]);
 
-
     useEffect(() => {
         initializeAuth();
     }, [initializeAuth]);
     
-     useEffect(() => {
+    useEffect(() => {
         if (isLoading) return;
 
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
@@ -135,6 +119,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         if (!user && !isAuthPage && !isHomePage) {
             router.replace('/login');
         } else if (user && isAuthPage) {
+            // Wait for admin status to be confirmed before redirecting
             router.replace(isAdmin ? '/dashboard/admin' : '/dashboard');
         }
         
@@ -157,13 +142,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             const data = await response.json();
             if (data.token) {
                 localStorage.setItem('token', data.token);
-                await fetchUserProfile(data.token);
-
-                // We need to decode here again to decide the redirect path immediately
-                const decoded: UserPayload = jwtDecode(data.token);
-                const userIsAdmin = decoded.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
-                router.replace(userIsAdmin ? '/dashboard/admin' : '/dashboard');
+                await fetchUserProfile(data.token); // This now sets user and isAdmin state
+                
+                // The useEffect will handle the redirect correctly once state is set.
                 return true;
             }
              throw new Error('No token received');
