@@ -163,10 +163,10 @@ export default function DeviceListPage() {
     Array.from({ length: 4 }).map((_, index) => (
       <Card key={index}>
         <CardHeader>
-          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-8 w-3/4" />
           <Skeleton className="h-4 w-1/2" />
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -190,14 +190,14 @@ export default function DeviceListPage() {
         <AddDeviceDialog open={isAddDeviceOpen} onOpenChange={setIsAddDeviceOpen} onDeviceAdded={onDeviceAdded} />
         <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
-              <h1 className="text-3xl font-bold">My Devices</h1>
-              <p className="text-muted-foreground">All devices registered to your account.</p>
+              <h1 className="text-3xl font-bold">Device List</h1>
+              <p className="text-muted-foreground">All registered environmental monitoring devices.</p>
             </div>
              <div className="flex w-full md:w-auto items-center gap-2">
                 <div className="relative w-full md:max-w-xs">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by name, UID, location..."
+                        placeholder="Search by name or UID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
@@ -211,12 +211,9 @@ export default function DeviceListPage() {
         </div>
         
         {!loading && !error && (
-            <div className="flex items-center gap-3 bg-muted/50 px-4 py-2 rounded-lg self-start">
+             <div className="flex items-center gap-3 bg-muted/50 px-3 py-1.5 rounded-full self-start text-sm">
                 <div className="flex items-center gap-2 text-green-500 font-semibold">
-                    <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                    </span>
+                    <span className="h-2 w-2 rounded-full bg-green-500"></span>
                     <span>{onlineDevicesCount} Online</span>
                 </div>
                 <span className="text-muted-foreground">/</span>
@@ -243,59 +240,62 @@ export default function DeviceListPage() {
                 return (
                 <Link href={`/dashboard/device/${device.uid}`} key={device.uid} className="block group">
                   <Card className="h-full flex flex-col transition-all duration-300 ease-in-out group-hover:shadow-primary/20 group-hover:shadow-lg group-hover:-translate-y-1">
-                    <CardHeader className="relative">
-                      <div className="absolute top-4 right-4 flex items-center gap-2">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className={cn("h-7 w-7 rounded-full", isPinned ? 'text-primary' : 'text-muted-foreground')} onClick={(e) => togglePin(e, device.uid)}>
-                                    <Pin className={cn("h-4 w-4", isPinned && 'fill-primary')} />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent><p>{isPinned ? 'Unpin Device' : 'Pin Device'}</p></TooltipContent>
-                        </Tooltip>
-                        <div className={cn('flex items-center gap-2 text-xs font-semibold', device.status === 'online' ? 'text-green-500' : 'text-muted-foreground')}>
-                            <span className={cn('h-2 w-2 rounded-full', device.status === 'online' ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground')}></span>
-                            {device.status}
+                    <CardHeader className="relative pb-4">
+                        <div className="absolute top-4 right-4 flex items-center gap-2">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button size="icon" variant="ghost" className={cn("h-7 w-7 rounded-full", isPinned ? 'text-primary' : 'text-muted-foreground/50')} onClick={(e) => togglePin(e, device.uid)}>
+                                        <Pin className={cn("h-4 w-4", isPinned && 'fill-primary')} />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>{isPinned ? 'Unpin Device' : 'Pin Device'}</p></TooltipContent>
+                            </Tooltip>
+                             <div className={cn('flex items-center gap-1.5 text-xs font-semibold', 
+                                device.status === 'online' ? 'text-green-500' : 'text-muted-foreground'
+                             )}>
+                                <span className={cn('h-2 w-2 rounded-full', 
+                                    device.status === 'online' ? 'bg-green-500' : 'bg-muted-foreground'
+                                )}></span>
+                                {device.status}
+                            </div>
                         </div>
-                      </div>
-                      <CardTitle className="text-primary pr-16">{device.name || 'Unnamed Device'}</CardTitle>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div
-                            onClick={(e) => handleCopy(e, device.uid)}
-                            className="inline-flex items-center gap-2 cursor-pointer"
-                          >
+                        <CardTitle className="text-xl font-bold text-primary">{device.name || 'Unnamed Device'}</CardTitle>
+                        <div className="flex items-center gap-2">
                             <CardDescription className="font-mono text-xs">{device.uid}</CardDescription>
-                            <Copy className="h-3 w-3 text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Click to copy UID</p>
-                        </TooltipContent>
-                      </Tooltip>
-                       {device.location && <CardDescription className="text-xs pt-1">{device.location}</CardDescription>}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                <button onClick={(e) => handleCopy(e, device.uid)} className='text-muted-foreground hover:text-foreground'>
+                                    <Copy className="h-3 w-3" />
+                                </button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Copy UID</p></TooltipContent>
+                            </Tooltip>
+                        </div>
+                       {device.location && <CardDescription className="text-sm pt-1">{device.location}</CardDescription>}
                     </CardHeader>
                     <CardContent className="space-y-3 flex-1 flex flex-col justify-end">
-                       <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
-                        <div className="flex items-center gap-2 font-medium text-sm"><Thermometer className="h-4 w-4 text-amber-500"/>Temperature</div>
-                        <span className="text-xl font-bold text-amber-500">
+                       <div className="flex justify-between items-center text-base">
+                        <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground"><Thermometer className="h-4 w-4 text-amber-500"/>Temperature</div>
+                        <span className="font-bold text-amber-500">
                           {latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
-                        <div className="flex items-center gap-2 font-medium text-sm"><Droplets className="h-4 w-4 text-sky-500"/>Water Level</div>
-                        <span className="text-xl font-bold text-sky-500">
+                      <div className="flex justify-between items-center text-base">
+                        <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground"><Droplets className="h-4 w-4 text-sky-500"/>Water Level</div>
+                        <span className="font-bold text-sky-500">
                           {latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center bg-muted/50 p-3 rounded-lg">
-                         <div className="flex items-center gap-2 font-medium text-sm"><CloudRain className="h-4 w-4 text-emerald-500"/>Rainfall</div>
-                        <span className="text-xl font-bold text-emerald-500">
+                      <div className="flex justify-between items-center text-base">
+                         <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground"><CloudRain className="h-4 w-4 text-emerald-500"/>Rainfall</div>
+                        <span className="font-bold text-emerald-500">
                           {latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground pt-2">Last updated: {device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never'}</p>
                     </CardContent>
+                     <div className="p-6 pt-4">
+                         <p className="text-xs text-muted-foreground">Last updated: {device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never'}</p>
+                     </div>
                   </Card>
                 </Link>
               )})
@@ -309,5 +309,3 @@ export default function DeviceListPage() {
     </div>
   );
 }
-
-    
