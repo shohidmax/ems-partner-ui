@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { jwtDecode } from 'jwt-decode';
 
 const API_URL = 'https://esp32server2.maxapi.esp32.site';
 
@@ -17,6 +18,15 @@ export interface UserProfile {
     address?: string;
     mobile?: string;
 }
+
+interface DecodedToken {
+    userId: string;
+    email: string;
+    name: string;
+    iat: number;
+    exp: number;
+}
+
 
 interface UserContextType {
     user: UserProfile | null;
@@ -50,13 +60,14 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             router.replace('/login');
         }
     }, [router, pathname]);
-
+    
     const fetchUserProfile = useCallback(async () => {
         const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!currentToken) {
-            throw new Error("No token found");
+            logout();
+            return;
         }
-        setIsLoading(true);
+
         try {
             const response = await fetch(`${API_URL}/api/user/profile`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
@@ -73,10 +84,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         } catch (error) {
              console.error("Error fetching full user profile:", error);
-             logout(); 
-             throw error; 
-        } finally {
-            setIsLoading(false);
+             logout();
         }
     }, [logout]);
     
@@ -92,7 +100,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
         setIsLoading(false);
-    }, [fetchUserProfile]);
+    }, []);
 
 
     useEffect(() => {
