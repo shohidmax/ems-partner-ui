@@ -60,7 +60,7 @@ export function ProfileForm() {
 
     startTransition(async () => {
       try {
-        const response = await fetch('https://esp-web-server2.onrender.com/api/user/profile/update', {
+        const response = await fetch('https://esp32server2.maxapi.esp32.site/api/user/profile/update', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

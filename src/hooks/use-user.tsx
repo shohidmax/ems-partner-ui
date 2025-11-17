@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-const API_URL = 'https://esp-web-server2.onrender.com';
+const API_URL = 'https://esp32server2.maxapi.esp32.site';
 
 export interface UserProfile {
     _id: string;

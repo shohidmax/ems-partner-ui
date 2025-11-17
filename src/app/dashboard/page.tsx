@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/user/devices';
+const API_URL = 'https://esp32server2.maxapi.esp32.site/api/user/devices';
 
 interface DeviceInfo {
   uid: string;

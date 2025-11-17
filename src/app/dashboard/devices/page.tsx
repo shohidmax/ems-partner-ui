@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 import { AddDeviceDialog } from '@/components/add-device-dialog';
 
 
-const API_URL = 'https://esp-web-server2.onrender.com/api/user/devices';
+const API_URL = 'https://esp32server2.maxapi.esp32.site/api/user/devices';
 
 interface DeviceInfo {
   uid: string;

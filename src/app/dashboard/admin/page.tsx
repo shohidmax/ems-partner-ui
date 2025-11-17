@@ -8,7 +8,7 @@ import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download, User 
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://esp-web-server2.onrender.com';
+const API_URL = 'https://esp32server2.maxapi.esp32.site';
 
 interface AdminStats {
   totalDevices: number;

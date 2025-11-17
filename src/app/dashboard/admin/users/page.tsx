@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const API_BASE_URL = 'https://esp-web-server2.onrender.com/api';
+const API_BASE_URL = 'https://esp32server2.maxapi.esp32.site/api';
 
 interface UserData {
   _id: string;
