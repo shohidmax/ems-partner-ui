@@ -140,20 +140,35 @@ export default function DeviceDetailsPage() {
     
     try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        // Admins and regular users use the same endpoint for history, 
-        // but the backend enforces permissions.
-        let url = `${API_URL_BASE}/user/device/${uid}/data`;
-        
-        const queryParams = new URLSearchParams();
-        if (start) queryParams.append('start', start.split('T')[0]); // YYYY-MM-DD
-        if (end) queryParams.append('end', end.split('T')[0]); // YYYY-MM-DD
-        
-        const queryString = queryParams.toString();
-        if(queryString) {
-            url += `?${queryString}`;
+        let historyResponse;
+
+        if (isAdmin) {
+             // Admins use the public data-by-range endpoint, which doesn't require ownership.
+             const url = `${API_URL_BASE}/device/data-by-range`;
+             const body: any = { uid };
+             if (start) body.start = start;
+             if (end) body.end = end;
+             
+             historyResponse = await fetch(url, { 
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+             });
+
+        } else {
+            // Regular users use the protected endpoint that checks for ownership.
+            let url = `${API_URL_BASE}/user/device/${uid}/data`;
+            const queryParams = new URLSearchParams();
+            if (start) queryParams.append('start', start.split('T')[0]); // YYYY-MM-DD
+            if (end) queryParams.append('end', end.split('T')[0]); // YYYY-MM-DD
+            
+            const queryString = queryParams.toString();
+            if(queryString) {
+                url += `?${queryString}`;
+            }
+             historyResponse = await fetch(url, { headers });
         }
         
-        const historyResponse = await fetch(url, { headers });
         if (!historyResponse.ok) {
             if (historyResponse.status === 403) {
                  throw new Error('You do not have permission to view this device.');
@@ -177,7 +192,7 @@ export default function DeviceDetailsPage() {
     } finally {
         setLoading(false);
     }
-  }, [token, uid]);
+  }, [token, uid, isAdmin]);
 
   const fetchDeviceInfo = useCallback(async () => {
     if (!token || !uid) return;
@@ -534,7 +549,7 @@ export default function DeviceDetailsPage() {
         <CardContent className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
           <div><p className="text-sm text-muted-foreground">Last Updated</p><p className="font-semibold text-lg">{latestData ? new Date(latestData.timestamp).toLocaleString() : 'N/A'}</p></div>
           <div><p className="text-sm text-muted-foreground">Temperature</p><p className="font-bold text-2xl text-amber-500">{latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}</p></div>
           <div><p className="text-sm text-muted-foreground">Daily Rainfall</p><p className="font-bold text-2xl text-emerald-500">{latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}</p></div>
         </CardContent>
       </Card>
@@ -658,3 +673,5 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
