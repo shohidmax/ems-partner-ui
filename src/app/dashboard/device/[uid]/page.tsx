@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 
 
-const API_URL_BASE = 'https://esp32server2.maxapi.esp32.site/api';
+const API_URL_BASE = 'https://esp32server2.maxapi.esp32.site';
 
 interface DeviceInfo {
   uid: string;
@@ -107,9 +107,8 @@ const renderActiveShape = (props: any) => {
 };
 
 
-export default function DeviceDetailsPage() {
+export default function DeviceDetailsPage({ params }: { params: { uid: string } }) {
   const router = useRouter();
-  const params = useParams();
   const uid = decodeURIComponent(params.uid as string);
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
@@ -673,5 +672,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-    
