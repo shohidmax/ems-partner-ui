@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, use } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -107,8 +107,8 @@ const renderActiveShape = (props: any) => {
 };
 
 
-export default function DeviceDetailsPage({ params: paramsProp }: { params: { uid: string } }) {
-  const params = use(Promise.resolve(paramsProp));
+export default function DeviceDetailsPage() {
+  const params = useParams();
   const uid = decodeURIComponent(params.uid as string);
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
