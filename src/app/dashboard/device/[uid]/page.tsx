@@ -107,9 +107,9 @@ const renderActiveShape = (props: any) => {
 };
 
 
-export default function DeviceDetailsPage({ params: paramsProp }: { params: { uid: string } }) {
-  const params = useParams();
-  const uid = decodeURIComponent(params.uid as string);
+export default function DeviceDetailsPage({ params }: { params: { uid: string } }) {
+  const { uid: uidParam } = useParams();
+  const uid = decodeURIComponent(uidParam as string);
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
 
@@ -372,12 +372,12 @@ export default function DeviceDetailsPage({ params: paramsProp }: { params: { ui
     
     (pdf as any).autoTable({
         body: [
-            ["Last Updated:", latestData ? new Date(latestData.timestamp).toLocaleString() : 'N/A'],
+            ["Last Updated:", latestData ? new Date(latestData.timestamp).toLocaleString('en-GB') : 'N/A'],
             ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
             ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} m` : 'N/A'],
             ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
-            ["Filter Start:", appliedStartDate ? new Date(appliedStartDate).toLocaleString() : 'All'],
-            ["Filter End:", appliedEndDate ? new Date(appliedEndDate).toLocaleString() : 'All'],
+            ["Filter Start:", appliedStartDate ? new Date(appliedStartDate).toLocaleString('en-GB') : 'All'],
+            ["Filter End:", appliedEndDate ? new Date(appliedEndDate).toLocaleString('en-GB') : 'All'],
         ],
         startY: currentY,
         theme: 'plain',
@@ -433,7 +433,7 @@ export default function DeviceDetailsPage({ params: paramsProp }: { params: { ui
     (pdf as any).autoTable({
         head: [['Timestamp', 'Temp (°C)', 'Water (m)', 'Rain (mm)']],
         body: deviceHistory.map(d => [
-            new Date(d.timestamp).toLocaleString(),
+            new Date(d.timestamp).toLocaleString('en-GB'),
             d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
             d.water_level.toFixed(2),
             d.rainfall.toFixed(2)
@@ -562,9 +562,9 @@ export default function DeviceDetailsPage({ params: paramsProp }: { params: { ui
             <p className="text-sm text-muted-foreground">Last Updated</p>
             {latestData ? (
                 <div className="font-semibold text-lg">
-                    <span>{new Date(latestData.timestamp).toLocaleDateString()}</span>
+                    <span suppressHydrationWarning>{new Date(latestData.timestamp).toLocaleDateString('en-GB')}</span>
                     <br/>
-                    <span className='text-base'>{new Date(latestData.timestamp).toLocaleTimeString()}</span>
+                    <span className='text-base' suppressHydrationWarning>{new Date(latestData.timestamp).toLocaleTimeString()}</span>
                 </div>
             ) : <p className="font-semibold text-lg">'N/A'</p>}
         </div>
@@ -684,8 +684,8 @@ export default function DeviceDetailsPage({ params: paramsProp }: { params: { ui
                     <TableRow key={i}>
                       <TableCell>
                         <div className="flex flex-col">
-                            <span>{new Date(d.timestamp).toLocaleDateString()}</span>
-                            <span className="text-muted-foreground text-xs">{new Date(d.timestamp).toLocaleTimeString()}</span>
+                            <span suppressHydrationWarning>{new Date(d.timestamp).toLocaleDateString('en-GB')}</span>
+                            <span className="text-muted-foreground text-xs" suppressHydrationWarning>{new Date(d.timestamp).toLocaleTimeString()}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-center font-semibold text-amber-500">{d.temperature !== null ? d.temperature.toFixed(1) : 'N/A'}</TableCell>

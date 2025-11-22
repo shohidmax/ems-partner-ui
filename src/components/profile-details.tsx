@@ -88,7 +88,7 @@ export function ProfileDetails() {
                                 <Calendar className="h-5 w-5 text-primary" />
                                 <span className="font-medium">Member Since</span>
                             </div>
-                            <span className="font-semibold text-sm">{new Date(user.createdAt).toLocaleDateString()}</span>
+                            <span className="font-semibold text-sm">{new Date(user.createdAt).toLocaleDateString('en-GB')}</span>
                         </div>
                     )}
                 </CardContent>

@@ -149,7 +149,7 @@ export default function AdminUserManagerPage() {
                         {user.isAdmin ? 'Admin' : 'User'}
                     </Badge>
                   </TableCell>
-                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(user.createdAt).toLocaleDateString('en-GB')}</TableCell>
                   <TableCell className="text-right">
                     <TooltipProvider>
                       <Tooltip>

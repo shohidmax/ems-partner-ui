@@ -258,7 +258,7 @@ export default function AdminDeviceManagerPage() {
                         </CardContent>
                          <div className="p-4 pt-4 border-t flex items-center justify-between">
                             <p className="text-xs text-muted-foreground">
-                                Last seen: {device.lastSeen ? new Date(device.lastSeen).toLocaleString() : 'Never'}
+                                Last seen: {device.lastSeen ? new Date(device.lastSeen).toLocaleString('en-GB') : 'Never'}
                             </p>
                              <Button asChild variant="outline" size="icon" className="h-8 w-8">
                                 <Link href={`/dashboard/device/${device.uid}`}>
