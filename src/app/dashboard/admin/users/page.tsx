@@ -71,6 +71,7 @@ export default function AdminUserManagerPage() {
   const handleRoleChange = async (targetUser: UserData, newIsAdmin: boolean) => {
     if (!token) return;
     
+    const originalUsers = [...users];
     // Optimistically update UI
     setUsers(users.map(u => u._id === targetUser._id ? { ...u, isAdmin: newIsAdmin } : u));
     
@@ -92,11 +93,11 @@ export default function AdminUserManagerPage() {
       }
       toast({ title: 'Success', description: `${targetUser.name}'s role has been updated.` });
       // Re-fetch to be sure of the state
-      fetchUsers();
+      await fetchUsers();
       
     } catch (e: any) {
       // Revert UI on failure
-      setUsers(users.map(u => u._id === targetUser._id ? { ...u, isAdmin: !newIsAdmin } : u));
+      setUsers(originalUsers);
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
   };

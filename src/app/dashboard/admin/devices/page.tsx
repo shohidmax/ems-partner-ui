@@ -39,7 +39,7 @@ export default function AdminDeviceManagerPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingDevice, setEditingDevice] = useState<AdminDevice | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] useState('');
   const { toast } = useToast();
   const { token } = useUser();
 
@@ -75,7 +75,9 @@ export default function AdminDeviceManagerPage() {
   };
 
   useEffect(() => {
-    fetchDevices();
+    if (token) {
+        fetchDevices();
+    }
   }, [token]);
 
   const handleEdit = (device: AdminDevice) => {
@@ -108,7 +110,7 @@ export default function AdminDeviceManagerPage() {
       if (!response.ok) throw new Error('Failed to save device.');
       toast({ title: 'Success', description: 'Device updated successfully.' });
       setEditingDevice(null);
-      fetchDevices(); // Refresh list
+      await fetchDevices(); // Refresh list
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     } finally {
@@ -278,9 +280,3 @@ export default function AdminDeviceManagerPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    

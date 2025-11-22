@@ -27,14 +27,19 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!token) return;
+      if (!token) {
+        setLoading(false);
+        setError("Authentication token not available.");
+        return;
+      }
       try {
         const response = await fetch(`${API_URL}/api/admin/stats`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {
            if (response.status === 403) throw new Error('Admin access required.');
-           throw new Error(`Failed to fetch stats. Status: ${response.status}`);
+           const errorData = await response.json();
+           throw new Error(errorData.message || `Failed to fetch stats. Status: ${response.status}`);
         }
         const data = await response.json();
         setStats(data);
