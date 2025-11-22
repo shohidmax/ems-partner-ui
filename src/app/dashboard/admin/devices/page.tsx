@@ -39,7 +39,7 @@ export default function AdminDeviceManagerPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingDevice, setEditingDevice] = useState<AdminDevice | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [searchQuery, setSearchQuery] useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const { token } = useUser();
 
