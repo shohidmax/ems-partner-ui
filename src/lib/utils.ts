@@ -18,9 +18,11 @@ export function formatToBDTime(dateString: string) {
       minute: '2-digit',
       second: '2-digit',
       hour12: true,
-    });
+    }).replace(/, /g, ' ');
   } catch (error) {
     console.error('Invalid date string for formatToBDTime:', dateString);
     return 'Invalid Date';
   }
 }
+
+    

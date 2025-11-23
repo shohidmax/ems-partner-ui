@@ -190,8 +190,7 @@ export default function DeviceDetailsPage() {
             timestamp: d.timestamp && !d.timestamp.startsWith('1970-') ? d.timestamp : null
         })).filter((d: any) => d.timestamp);
         
-        const sortedData = processedData.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setDeviceHistory(sortedData);
+        setDeviceHistory(processedData);
 
     } catch (e: any) {
         console.error('Failed to fetch data:', e);
@@ -258,7 +257,7 @@ export default function DeviceDetailsPage() {
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
-    return deviceHistory[0];
+    return deviceHistory[deviceHistory.length - 1];
   }, [deviceHistory]);
   
   const mapLocation = useMemo(() => {
@@ -398,9 +397,9 @@ export default function DeviceDetailsPage() {
     pdf.text('Summary', pageMargin, currentY);
     currentY += 8;
 
-    const summaryBody = [
+    const summaryBody: (string | number)[][] = [
         ["Last Updated:", latestData ? formatToBDTime(latestData.timestamp) : 'N/A'],
-        ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
+        ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N_A'],
         ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} m` : 'N/A'],
         ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
         ["Filter Start:", appliedStartDate ? formatToBDTime(appliedStartDate) : 'All'],
@@ -666,7 +665,7 @@ export default function DeviceDetailsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={deviceHistory.slice().reverse()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="timestamp" tickFormatter={(ts) => new Date(ts).toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' })} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[1] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C', angle: -90, position: 'insideLeft' }} />
                   <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'm / mm', angle: -90, position: 'insideRight' }}/>
                   <Tooltip content={<ChartTooltipContent />} />
@@ -744,7 +743,7 @@ export default function DeviceDetailsPage() {
               </TableHeader>
               <TableBody>
                 {deviceHistory.length > 0 ? (
-                  deviceHistory.map((d, i) => (
+                  deviceHistory.slice().reverse().map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
                         {formatToBDTime(d.timestamp)}
@@ -775,5 +774,7 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
 
     
