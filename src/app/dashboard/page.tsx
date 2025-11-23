@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
+import { formatToBDTime } from '@/lib/utils';
 
 const API_URL = 'https://esp32server2.maxapi.esp32.site/api/user/devices';
 
@@ -208,7 +209,7 @@ export default function DashboardPage() {
                                     {`Temp: ${device.data?.temperature !== null && device.data?.temperature !== undefined ? device.data.temperature.toFixed(1) + '°C' : 'N/A'}`}
                                 </p>
                             </div>
-                            <div className="ml-auto font-medium text-sm">{device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString('en-US') : 'N/A'}</div>
+                            <div className="ml-auto font-medium text-sm">{device.lastSeen ? formatToBDTime(device.lastSeen) : 'N/A'}</div>
                         </div>
                       ))
                      }

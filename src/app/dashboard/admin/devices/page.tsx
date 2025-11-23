@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
-import { cn } from '@/lib/utils';
+import { cn, formatToBDTime } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
@@ -282,7 +282,7 @@ export default function AdminDeviceManagerPage() {
                         </CardContent>
                          <div className="p-4 pt-4 border-t flex items-center justify-between">
                             <p className="text-xs text-muted-foreground">
-                                Last seen: {device.lastSeen ? new Date(device.lastSeen).toLocaleString('en-US') : 'Never'}
+                                Last seen: {device.lastSeen ? formatToBDTime(device.lastSeen) : 'Never'}
                             </p>
                              <Button asChild variant="outline" size="icon" className="h-8 w-8">
                                 <Link href={`/dashboard/device/${device.uid}`}>

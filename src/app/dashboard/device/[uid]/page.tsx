@@ -18,6 +18,7 @@ import html2canvas from 'html2canvas';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { formatToBDTime } from '@/lib/utils';
 
 
 const API_URL_BASE = 'https://esp32server2.maxapi.esp32.site';
@@ -257,7 +258,7 @@ export default function DeviceDetailsPage() {
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
-    return deviceHistory.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    return deviceHistory[0];
   }, [deviceHistory]);
   
   const mapLocation = useMemo(() => {
@@ -398,12 +399,12 @@ export default function DeviceDetailsPage() {
     currentY += 8;
 
     const summaryBody = [
-        ["Last Updated:", latestData ? new Date(latestData.timestamp).toLocaleString('en-US') : 'N/A'],
+        ["Last Updated:", latestData ? formatToBDTime(latestData.timestamp) : 'N/A'],
         ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
         ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} m` : 'N/A'],
         ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
-        ["Filter Start:", appliedStartDate ? new Date(appliedStartDate).toLocaleString('en-US') : 'All'],
-        ["Filter End:", appliedEndDate ? new Date(appliedEndDate).toLocaleString('en-US') : 'All'],
+        ["Filter Start:", appliedStartDate ? formatToBDTime(appliedStartDate) : 'All'],
+        ["Filter End:", appliedEndDate ? formatToBDTime(appliedEndDate) : 'All'],
     ];
 
     if (deviceInfo?.latitude && deviceInfo?.longitude) {
@@ -467,7 +468,7 @@ export default function DeviceDetailsPage() {
     (pdf as any).autoTable({
         head: [['Timestamp', 'Temp (°C)', 'Water (m)', 'Rain (mm)']],
         body: deviceHistory.map(d => [
-            new Date(d.timestamp).toLocaleString('en-US'),
+            formatToBDTime(d.timestamp),
             d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
             d.water_level.toFixed(2),
             d.rainfall.toFixed(2)
@@ -609,8 +610,7 @@ export default function DeviceDetailsPage() {
             <p className="text-sm text-muted-foreground">Last Updated</p>
             {latestData ? (
                 <div className="font-semibold text-lg">
-                    <span suppressHydrationWarning>{new Date(latestData.timestamp).toLocaleDateString('en-US')}</span>
-                    <span className='block text-base' suppressHydrationWarning>{new Date(latestData.timestamp).toLocaleTimeString('en-US')}</span>
+                    {formatToBDTime(latestData.timestamp)}
                 </div>
             ) : <p className="font-semibold text-lg">'N/A'</p>}
         </div>
@@ -666,7 +666,7 @@ export default function DeviceDetailsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={deviceHistory.slice().reverse()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="timestamp" tickFormatter={(ts) => new Date(ts).toLocaleTimeString()} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <XAxis dataKey="timestamp" tickFormatter={(ts) => new Date(ts).toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour: '2-digit', minute: '2-digit' })} stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C', angle: -90, position: 'insideLeft' }} />
                   <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'm / mm', angle: -90, position: 'insideRight' }}/>
                   <Tooltip content={<ChartTooltipContent />} />
@@ -747,9 +747,7 @@ export default function DeviceDetailsPage() {
                   deviceHistory.map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
-                        <div className="flex flex-col">
-                            <span suppressHydrationWarning>{new Date(d.timestamp).toLocaleString('en-US')}</span>
-                        </div>
+                        {formatToBDTime(d.timestamp)}
                       </TableCell>
                       <TableCell className="text-center font-semibold text-amber-500">{d.temperature !== null ? d.temperature.toFixed(1) : 'N/A'}</TableCell>
                       <TableCell className="text-center font-semibold text-sky-500">{d.water_level.toFixed(2)}</TableCell>

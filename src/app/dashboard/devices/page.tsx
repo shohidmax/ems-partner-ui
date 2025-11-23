@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, formatToBDTime } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { AddDeviceDialog } from '@/components/add-device-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -311,7 +311,7 @@ export default function DeviceListPage() {
                       </div>
                     </CardContent>
                      <div className="p-6 pt-4">
-                         <p className="text-xs text-muted-foreground">Last updated: {device.lastSeen ? new Date(device.lastSeen).toLocaleString('en-US') : 'Never'}</p>
+                         <p className="text-xs text-muted-foreground">Last updated: {device.lastSeen ? formatToBDTime(device.lastSeen) : 'Never'}</p>
                      </div>
                   </Card>
                 </Link>

@@ -10,6 +10,7 @@ import { AddDeviceDialog } from './add-device-dialog';
 import { Button } from './ui/button';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { formatToBDTime } from '@/lib/utils';
 
 export function ProfileDetails() {
     const { user, isAdmin, isLoading, fetchUserProfile } = useUser();
@@ -88,7 +89,7 @@ export function ProfileDetails() {
                                 <Calendar className="h-5 w-5 text-primary" />
                                 <span className="font-medium">Member Since</span>
                             </div>
-                            <span className="font-semibold text-sm">{new Date(user.createdAt).toLocaleDateString('en-US')}</span>
+                            <span className="font-semibold text-sm">{formatToBDTime(user.createdAt)}</span>
                         </div>
                     )}
                 </CardContent>
