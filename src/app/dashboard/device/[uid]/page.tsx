@@ -139,6 +139,12 @@ export default function DeviceDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [activePieIndex, setActivePieIndex] = useState(0);
 
+  const toLocalISOString = (date: Date) => {
+    const tzoffset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date.getTime() - tzoffset).toISOString().slice(0, 16);
+    return localISOTime;
+  };
+
   const fetchDeviceHistory = useCallback(async (start?: string, end?: string) => {
     if (!token || !uid) return;
     setLoading(true);
@@ -149,10 +155,6 @@ export default function DeviceDetailsPage() {
         
         let url;
         let historyResponse;
-
-        const queryParams = new URLSearchParams();
-        if (start) queryParams.append('start', start);
-        if (end) queryParams.append('end', end);
 
         if (isAdmin) {
              url = `${API_URL_BASE}/api/device/data-by-range`;
@@ -167,6 +169,9 @@ export default function DeviceDetailsPage() {
              });
 
         } else {
+            const queryParams = new URLSearchParams();
+            if (start) queryParams.append('start', start);
+            if (end) queryParams.append('end', end);
             url = `${API_URL_BASE}/api/user/device/${uid}/data`;
             const queryString = queryParams.toString();
             if(queryString) {
@@ -258,7 +263,8 @@ export default function DeviceDetailsPage() {
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
-    return deviceHistory[deviceHistory.length - 1];
+    // Data is assumed to be sorted descending by timestamp from API
+    return deviceHistory[0];
   }, [deviceHistory]);
   
   const mapLocation = useMemo(() => {
@@ -308,12 +314,6 @@ export default function DeviceDetailsPage() {
     const handleQuickFilter = (minutes: number) => {
         const now = new Date();
         const start = new Date(now.getTime() - minutes * 60 * 1000);
-        
-        const toLocalISOString = (date: Date) => {
-            const tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
-            const localISOTime = (new Date(date.getTime() - tzoffset)).toISOString().slice(0, -1);
-            return localISOTime.substring(0, 16);
-        };
 
         const endStr = toLocalISOString(now);
         const startStr = toLocalISOString(start);
@@ -664,7 +664,7 @@ export default function DeviceDetailsPage() {
           <CardContent className="h-[400px] p-0">
              {loading ? <div className="h-full flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={deviceHistory}>
+                <LineChart data={deviceHistory.slice().reverse()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[1] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C', angle: -90, position: 'insideLeft' }} />
@@ -744,7 +744,7 @@ export default function DeviceDetailsPage() {
               </TableHeader>
               <TableBody>
                 {deviceHistory.length > 0 ? (
-                  deviceHistory.slice().reverse().map((d, i) => (
+                  deviceHistory.map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
                         {formatToBDTime(d.timestamp)}
@@ -766,7 +766,7 @@ export default function DeviceDetailsPage() {
       </Card>
 
       <div className="text-center">
-        <Button onClick={downloadPDF} disabled={isPdfLoading}>
+        <Button onClick={downloadPDF} disabled={isPdfLoading || deviceHistory.length === 0}>
           {isPdfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {isPdfLoading ? 'Generating Report...' : 'Download PDF Report'}
         </Button>
@@ -775,3 +775,5 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
