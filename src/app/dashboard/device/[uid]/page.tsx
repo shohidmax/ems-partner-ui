@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
-import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter } from 'lucide-react';
+import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
@@ -26,6 +26,8 @@ interface DeviceInfo {
   uid: string;
   name: string | null;
   location: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: 'online' | 'offline' | 'unknown';
   lastSeen: string | null;
 }
@@ -35,6 +37,8 @@ interface DeviceData {
   temperature: number | null;
   water_level: number;
   rainfall: number;
+  latitude?: number;
+  longitude?: number;
   timestamp: string;
 }
 
@@ -129,6 +133,8 @@ export default function DeviceDetailsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingName, setEditingName] = useState('');
   const [editingLocation, setEditingLocation] = useState('');
+  const [editingLatitude, setEditingLatitude] = useState<number | null | undefined>(null);
+  const [editingLongitude, setEditingLongitude] = useState<number | null | undefined>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activePieIndex, setActivePieIndex] = useState(0);
 
@@ -140,9 +146,14 @@ export default function DeviceDetailsPage() {
     try {
         const headers = { 'Authorization': `Bearer ${token}` };
         let historyResponse;
+        
+        let url;
+        const queryParams = new URLSearchParams();
+        if (start) queryParams.append('start', start.split('T')[0]);
+        if (end) queryParams.append('end', end.split('T')[0]);
 
         if (isAdmin) {
-             const url = `${API_URL_BASE}/api/device/data-by-range`;
+             url = `${API_URL_BASE}/api/device/data-by-range`;
              const body: any = { uid };
              if (start) body.start = start.split('T')[0];
              if (end) body.end = end.split('T')[0];
@@ -154,11 +165,7 @@ export default function DeviceDetailsPage() {
              });
 
         } else {
-            let url = `${API_URL_BASE}/api/user/device/${uid}/data`;
-            const queryParams = new URLSearchParams();
-            if (start) queryParams.append('start', start.split('T')[0]); // YYYY-MM-DD
-            if (end) queryParams.append('end', end.split('T')[0]); // YYYY-MM-DD
-            
+            url = `${API_URL_BASE}/api/user/device/${uid}/data`;
             const queryString = queryParams.toString();
             if(queryString) {
                 url += `?${queryString}`;
@@ -220,6 +227,8 @@ export default function DeviceDetailsPage() {
                  setDeviceInfo(currentDevice);
                  setEditingName(currentDevice?.name || '');
                  setEditingLocation(currentDevice?.location || '');
+                 setEditingLatitude(currentDevice?.latitude);
+                 setEditingLongitude(currentDevice?.longitude);
             }
 
         } else {
@@ -250,6 +259,16 @@ export default function DeviceDetailsPage() {
     if (deviceHistory.length === 0) return null;
     return deviceHistory[0];
   }, [deviceHistory]);
+  
+  const mapLocation = useMemo(() => {
+    if (deviceInfo?.latitude && deviceInfo?.longitude) {
+      return { lat: deviceInfo.latitude, lng: deviceInfo.longitude };
+    }
+    if (latestData?.latitude && latestData?.longitude) {
+      return { lat: latestData.latitude, lng: latestData.longitude };
+    }
+    return null;
+  }, [deviceInfo, latestData]);
 
   const pieChartData = useMemo(() => {
     if (deviceHistory.length === 0) return [];
@@ -323,7 +342,7 @@ export default function DeviceDetailsPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name: editingName, location: editingLocation })
+        body: JSON.stringify({ name: editingName, location: editingLocation, latitude: editingLatitude, longitude: editingLongitude })
       });
       if (!response.ok) throw new Error('Failed to save device.');
       
@@ -333,7 +352,9 @@ export default function DeviceDetailsPage() {
         setDeviceInfo({
             ...deviceInfo,
             name: editingName,
-            location: editingLocation
+            location: editingLocation,
+            latitude: editingLatitude,
+            longitude: editingLongitude
         });
       }
     } catch (e: any) {
@@ -506,6 +527,14 @@ export default function DeviceDetailsPage() {
                     <Label htmlFor="location" className="text-right">Location</Label>
                     <Input id="location" value={editingLocation} onChange={(e) => setEditingLocation(e.target.value)} className="col-span-3" />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="latitude" className="text-right">Latitude</Label>
+                    <Input id="latitude" type="number" value={editingLatitude ?? ''} onChange={(e) => setEditingLatitude(e.target.value === '' ? null : parseFloat(e.target.value))} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="longitude" className="text-right">Longitude</Label>
+                    <Input id="longitude" type="number" value={editingLongitude ?? ''} onChange={(e) => setEditingLongitude(e.target.value === '' ? null : parseFloat(e.target.value))} className="col-span-3" />
+                </div>
             </div>
             <DialogFooter>
                 <DialogClose asChild>
@@ -548,7 +577,12 @@ export default function DeviceDetailsPage() {
       <div>
         <h1 className="text-3xl font-bold">{deviceInfo?.name || 'Device Details'}</h1>
         <p className="text-muted-foreground font-mono">{uid}</p>
-        {deviceInfo?.location && <p className="text-muted-foreground text-sm">{deviceInfo.location}</p>}
+        {deviceInfo?.location && (
+            <p className="text-muted-foreground text-sm flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> 
+                {deviceInfo.location}
+            </p>
+        )}
       </div>
 
       {error && (
@@ -671,6 +705,24 @@ export default function DeviceDetailsPage() {
         </Card>
       </div>
 
+       {mapLocation && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Device Location</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <iframe
+              width="100%"
+              height="450"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${mapLocation.lat},${mapLocation.lng}`}>
+            </iframe>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader><CardTitle>Filtered Data Points</CardTitle></CardHeader>
         <CardContent>
@@ -720,9 +772,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-
-
-    
-
-    

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, Edit, Save, X, User, Search, Copy, Pin, ArrowRight } from 'lucide-react';
+import { TriangleAlert, Edit, Save, X, User, Search, Copy, Pin, ArrowRight, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,8 @@ interface AdminDevice {
   uid: string;
   name: string | null;
   location: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: 'online' | 'offline' | 'unknown';
   lastSeen: string | null;
   addedAt: string;
@@ -98,14 +100,18 @@ export default function AdminDeviceManagerPage() {
     if (!editingDevice || !token) return;
     setIsSaving(true);
     try {
-      const { uid, name, location } = editingDevice;
+      const { uid, name, location, latitude, longitude } = editingDevice;
+      const body: any = { name, location };
+      if (latitude !== undefined) body.latitude = latitude;
+      if (longitude !== undefined) body.longitude = longitude;
+
       const response = await fetch(`${API_BASE_URL}/device/${uid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name, location })
+        body: JSON.stringify(body)
       });
       if (!response.ok) throw new Error('Failed to save device.');
       toast({ title: 'Success', description: 'Device updated successfully.' });
@@ -167,6 +173,14 @@ export default function AdminDeviceManagerPage() {
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="location" className="text-right">Location</Label>
                         <Input id="location" value={editingDevice?.location || ''} onChange={(e) => setEditingDevice(d => d ? {...d, location: e.target.value} : null)} className="col-span-3" />
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="latitude" className="text-right">Latitude</Label>
+                        <Input id="latitude" type="number" value={editingDevice?.latitude || ''} onChange={(e) => setEditingDevice(d => d ? {...d, latitude: e.target.value === '' ? null : parseFloat(e.target.value)} : null)} className="col-span-3" />
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="longitude" className="text-right">Longitude</Label>
+                        <Input id="longitude" type="number" value={editingDevice?.longitude || ''} onChange={(e) => setEditingDevice(d => d ? {...d, longitude: e.target.value === '' ? null : parseFloat(e.target.value)} : null)} className="col-span-3" />
                     </div>
                 </div>
                  <DialogFooter>
@@ -231,7 +245,15 @@ export default function AdminDeviceManagerPage() {
                                     <TooltipContent><p>Copy UID</p></TooltipContent>
                                 </Tooltip>
                             </div>
-                            {device.location && <CardDescription className="text-sm pt-1">{device.location}</CardDescription>}
+                            {device.location && (
+                                <div className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
+                                    <MapPin className="h-4 w-4" />
+                                    <span className="truncate">{device.location}</span>
+                                     {device.latitude && device.longitude && (
+                                        <a href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs">(Map)</a>
+                                     )}
+                                </div>
+                            )}
                         </CardHeader>
                         <CardContent className="space-y-3 flex-1 flex flex-col justify-end">
                              <div>

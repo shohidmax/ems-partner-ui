@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, Copy, Thermometer, Droplets, CloudRain, Pin, Search, Plus, Loader2 } from 'lucide-react';
+import { TriangleAlert, Copy, Thermometer, Droplets, CloudRain, Pin, Search, Plus, Loader2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { AddDeviceDialog } from '@/components/add-device-dialog';
+import { Badge } from '@/components/ui/badge';
 
 
 const API_URL = 'https://esp32server2.maxapi.esp32.site/api/user/devices';
@@ -22,6 +23,8 @@ interface DeviceInfo {
   uid: string;
   name: string | null;
   location: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: 'online' | 'offline' | 'unknown';
   lastSeen: string | null;
   data?: {
@@ -237,11 +240,24 @@ export default function DeviceListPage() {
               sortedDevices.map((device) => {
                 const latestData = device.data;
                 const isPinned = pinnedDevices.has(device.uid);
+                const hasLocation = device.latitude && device.longitude;
                 return (
                 <Link href={`/dashboard/device/${device.uid}`} key={device.uid} className="block group">
                   <Card className="h-full flex flex-col transition-all duration-300 ease-in-out group-hover:shadow-primary/20 group-hover:shadow-lg group-hover:-translate-y-1">
                     <CardHeader className="relative pb-4">
                         <div className="absolute top-4 right-4 flex items-center gap-2">
+                            {hasLocation && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <a href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary">
+                                                <MapPin className="h-4 w-4" />
+                                            </Button>
+                                        </a>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>View on Map</p></TooltipContent>
+                                </Tooltip>
+                            )}
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" className={cn("h-7 w-7 rounded-full", isPinned ? 'text-primary' : 'text-muted-foreground/50')} onClick={(e) => togglePin(e, device.uid)}>
@@ -272,6 +288,7 @@ export default function DeviceListPage() {
                             </Tooltip>
                         </div>
                        {device.location && <CardDescription className="text-sm pt-1">{device.location}</CardDescription>}
+                       {hasLocation && !device.location && <Badge variant="outline" className="w-fit mt-1">Location set</Badge>}
                     </CardHeader>
                     <CardContent className="space-y-3 flex-1 flex flex-col justify-end">
                        <div className="flex justify-between items-center text-base">
