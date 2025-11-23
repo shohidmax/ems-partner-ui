@@ -146,18 +146,19 @@ export default function DeviceDetailsPage() {
     
     try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        let historyResponse;
         
         let url;
+        let historyResponse;
+
         const queryParams = new URLSearchParams();
-        if (start) queryParams.append('start', start.split('T')[0]);
-        if (end) queryParams.append('end', end.split('T')[0]);
+        if (start) queryParams.append('start', start);
+        if (end) queryParams.append('end', end);
 
         if (isAdmin) {
              url = `${API_URL_BASE}/api/device/data-by-range`;
              const body: any = { uid };
-             if (start) body.start = start.split('T')[0];
-             if (end) body.end = end.split('T')[0];
+             if (start) body.start = start;
+             if (end) body.end = end;
              
              historyResponse = await fetch(url, { 
                 method: 'POST',
@@ -171,7 +172,7 @@ export default function DeviceDetailsPage() {
             if(queryString) {
                 url += `?${queryString}`;
             }
-             historyResponse = await fetch(url, { headers });
+            historyResponse = await fetch(url, { headers });
         }
         
         if (!historyResponse.ok) {
@@ -257,7 +258,7 @@ export default function DeviceDetailsPage() {
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
-    return deviceHistory[0];
+    return deviceHistory[deviceHistory.length - 1];
   }, [deviceHistory]);
   
   const mapLocation = useMemo(() => {
@@ -663,7 +664,7 @@ export default function DeviceDetailsPage() {
           <CardContent className="h-[400px] p-0">
              {loading ? <div className="h-full flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={deviceHistory.slice().reverse()}>
+                <LineChart data={deviceHistory}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[1] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C', angle: -90, position: 'insideLeft' }} />
@@ -743,7 +744,7 @@ export default function DeviceDetailsPage() {
               </TableHeader>
               <TableBody>
                 {deviceHistory.length > 0 ? (
-                  deviceHistory.map((d, i) => (
+                  deviceHistory.slice().reverse().map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
                         {formatToBDTime(d.timestamp)}
