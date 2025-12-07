@@ -31,6 +31,7 @@ interface DeviceInfo {
   longitude?: number | null;
   status: 'online' | 'offline' | 'unknown';
   lastSeen: string | null;
+  division?: string | null;
 }
 
 interface DeviceData {
@@ -136,6 +137,7 @@ export default function DeviceDetailsPage() {
   const [editingLocation, setEditingLocation] = useState('');
   const [editingLatitude, setEditingLatitude] = useState<number | null | undefined>(null);
   const [editingLongitude, setEditingLongitude] = useState<number | null | undefined>(null);
+  const [editingDivision, setEditingDivision] = useState<string | null | undefined>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activePieIndex, setActivePieIndex] = useState(0);
 
@@ -235,6 +237,7 @@ export default function DeviceDetailsPage() {
                  setEditingLocation(currentDevice?.location || '');
                  setEditingLatitude(currentDevice?.latitude);
                  setEditingLongitude(currentDevice?.longitude);
+                 setEditingDivision(currentDevice?.division);
             }
 
         } else {
@@ -263,8 +266,7 @@ export default function DeviceDetailsPage() {
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
-    // Data is assumed to be sorted descending by timestamp from API
-    return deviceHistory[0];
+    return [...deviceHistory].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
   }, [deviceHistory]);
   
   const mapLocation = useMemo(() => {
@@ -343,7 +345,7 @@ export default function DeviceDetailsPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name: editingName, location: editingLocation, latitude: editingLatitude, longitude: editingLongitude })
+        body: JSON.stringify({ name: editingName, location: editingLocation, latitude: editingLatitude, longitude: editingLongitude, division: editingDivision })
       });
       if (!response.ok) throw new Error('Failed to save device.');
       
@@ -355,7 +357,8 @@ export default function DeviceDetailsPage() {
             name: editingName,
             location: editingLocation,
             latitude: editingLatitude,
-            longitude: editingLongitude
+            longitude: editingLongitude,
+            division: editingDivision
         });
       }
     } catch (e: any) {
@@ -534,6 +537,10 @@ export default function DeviceDetailsPage() {
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="location" className="text-right">Location</Label>
                     <Input id="location" value={editingLocation} onChange={(e) => setEditingLocation(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="division" className="text-right">Division</Label>
+                    <Input id="division" value={editingDivision || ''} onChange={(e) => setEditingDivision(e.target.value)} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="latitude" className="text-right">Latitude</Label>
