@@ -94,18 +94,24 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (tokenFromStorage) {
             try {
-                await fetchUserProfile();
+                const decoded = jwtDecode<DecodedToken>(tokenFromStorage);
+                if (decoded.exp * 1000 < Date.now()) {
+                    logout();
+                } else {
+                    await fetchUserProfile();
+                }
             } catch (error) {
                 console.error("Initialization failed, logging out:", error);
+                logout();
             }
         }
         setIsLoading(false);
-    }, []);
+    }, [fetchUserProfile, logout]);
 
 
     useEffect(() => {
         initializeAuth();
-    }, []); 
+    }, [initializeAuth]); 
 
     useEffect(() => {
         if (isLoading) return;
