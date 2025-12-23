@@ -9,7 +9,7 @@ import { Download, Loader2, TriangleAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
-const API_BASE_URL = 'https://esp32server2.maxapi.esp32.site';
+const API_BASE_URL = 'https://emspartner.espserver.site/';
 const API_URL = `${API_BASE_URL}/api/backup`;
 
 interface JobStatus {

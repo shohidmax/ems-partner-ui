@@ -19,7 +19,7 @@ import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://esp32server2.maxapi.esp32.site/api/user/password/change';
+const API_URL = 'https://emspartner.espserver.site//api/user/password/change';
 
 const formSchema = z.object({
   oldPassword: z.string().min(1, { message: 'Current password is required.' }),

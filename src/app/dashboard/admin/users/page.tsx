@@ -13,7 +13,7 @@ import { useUser } from '@/hooks/use-user';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatToBDTime } from '@/lib/utils';
 
-const API_BASE_URL = 'https://esp32server2.maxapi.esp32.site/api';
+const API_BASE_URL = 'https://emspartner.espserver.site//api';
 
 interface UserData {
   _id: string;

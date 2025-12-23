@@ -16,7 +16,7 @@ import { cn, formatToBDTime } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-const API_BASE_URL = 'https://esp32server2.maxapi.esp32.site/api';
+const API_BASE_URL = 'https://emspartner.espserver.site//api';
 
 interface DeviceOwner {
     _id: string;

@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { formatToBDTime } from '@/lib/utils';
 
 
-const API_URL_BASE = 'https://esp32server2.maxapi.esp32.site';
+const API_URL_BASE = 'https://emspartner.espserver.site/';
 
 interface DeviceInfo {
   uid: string;

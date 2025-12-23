@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
-const API_URL = 'https://esp32server2.maxapi.esp32.site';
+const API_URL = 'https://emspartner.espserver.site/';
 
 export interface UserProfile {
     _id: string;
@@ -75,6 +75,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
              if (!response.ok) {
                 const errorBody = await response.text();
                 console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
+                logout();
                 throw new Error("Failed to fetch profile, token might be invalid.");
             }
             const fullProfile: UserProfile = await response.json();
