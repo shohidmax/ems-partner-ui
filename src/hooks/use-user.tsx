@@ -76,7 +76,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 const errorBody = await response.text();
                 console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
                 logout();
-                throw new Error("Failed to fetch profile, token might be invalid.");
+                return;
             }
             const fullProfile: UserProfile = await response.json();
             setUser(fullProfile);
