@@ -86,8 +86,8 @@ export default function AdminDashboardPage() {
                 <HardDrive className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalDevices}</div>
-                <p className="text-xs text-muted-foreground">{stats.onlineDevices} Online / {stats.offlineDevices} Offline</p>
+                <div className="text-2xl font-bold">{stats.totalDevices || 0}</div>
+                <p className="text-xs text-muted-foreground">{stats.onlineDevices || 0} Online / {stats.offlineDevices || 0} Offline</p>
               </CardContent>
             </Card>
             <Card>
@@ -96,7 +96,7 @@ export default function AdminDashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                <div className="text-2xl font-bold">{stats.totalUsers || 0}</div>
                  <Link href="/dashboard/admin/users" className="text-xs text-primary hover:underline">Manage Users</Link>
               </CardContent>
             </Card>
@@ -106,8 +106,8 @@ export default function AdminDashboardPage() {
                 <Cloud className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalDataPoints.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">+{stats.dataToday.toLocaleString()} today</p>
+                <div className="text-2xl font-bold">{(stats.totalDataPoints || 0).toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">+{stats.dataToday?.toLocaleString() || 0} today</p>
               </CardContent>
             </Card>
             <Card>
