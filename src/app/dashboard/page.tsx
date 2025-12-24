@@ -10,7 +10,7 @@ import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain } from 
 import { useUser } from '@/hooks/use-user';
 import { formatToBDTime } from '@/lib/utils';
 
-const API_URL = 'https://emspartner.espserver.site//api/user/devices';
+const API_URL = 'https://emspartner.espserver.site/api/user/devices';
 
 interface DeviceInfo {
   uid: string;

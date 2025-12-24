@@ -60,7 +60,7 @@ export function ProfileForm() {
 
     startTransition(async () => {
       try {
-        const response = await fetch('https://emspartner.espserver.site//api/user/profile/update', {
+        const response = await fetch('https://emspartner.espserver.site/api/user/profile/update', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

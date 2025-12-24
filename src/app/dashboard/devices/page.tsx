@@ -17,7 +17,7 @@ import { AddDeviceDialog } from '@/components/add-device-dialog';
 import { Badge } from '@/components/ui/badge';
 
 
-const API_URL = 'https://emspartner.espserver.site//api/user/devices';
+const API_URL = 'https://emspartner.espserver.site/api/user/devices';
 
 interface DeviceInfo {
   uid: string;

@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
-const API_URL = 'https://emspartner.espserver.site/';
+const API_URL = 'https://emspartner.espserver.site';
 
 export interface UserProfile {
     _id: string;
@@ -105,8 +105,37 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 console.error("Initialization failed, logging out:", error);
                 logout();
             }
+        } else {
+            // If no token, we are not logged in.
+            setIsLoading(false);
         }
-        setIsLoading(false);
+        // setLoading(false) should be called inside fetchUserProfile or logout to avoid race conditions.
+        // But for the no-token case, it is safe here.
+        // For the token case, fetchUserProfile will eventually call setLoading(false) via logout or success.
+        // A better approach is to have a final "done" state.
+        
+        // Let's ensure loading is always turned off.
+        const finalizer = () => setIsLoading(false);
+        
+        if (tokenFromStorage) {
+            try {
+                const decoded = jwtDecode<DecodedToken>(tokenFromStorage);
+                if (decoded.exp * 1000 < Date.now()) {
+                    logout();
+                    finalizer();
+                } else {
+                    await fetchUserProfile();
+                    finalizer();
+                }
+            } catch (error) {
+                console.error("Initialization failed, logging out:", error);
+                logout();
+                finalizer();
+            }
+        } else {
+            setIsLoading(false);
+        }
+
     }, [fetchUserProfile, logout]);
 
 
@@ -149,17 +178,17 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     localStorage.setItem('token', data.token);
                 }
                 await fetchUserProfile();
+                setIsLoading(false); // Explicitly set loading to false after successful login and profile fetch
                 return true;
             }
 
             throw new Error('Login process failed: No token received.');
         } catch (error: any) {
             console.error('Login error:', error);
-            logout();
+            logout(); // This will set loading to false
             throw error;
-        } finally {
-            setIsLoading(false);
         }
+        // No need for a finally block to set loading false, as logout() does it on error, and we do it on success.
     };
     
     const value = { 
