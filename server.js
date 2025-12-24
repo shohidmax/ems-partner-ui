@@ -64,13 +64,11 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   
   mailTransporter.verify((error, success) => {
     if (error) {
-      console.warn('[Nodemailer Error] ইমেইল কনফিগারেশন সঠিক নয়:', error.message);
+      console.error('[Nodemailer Error] ইমেইল কনফিগারেশন সঠিক নয়:', error.message);
     } else {
       console.log('[Nodemailer Success] ইমেইল সার্ভার প্রস্তুত।');
     }
   });
-} else {
-  console.warn('[Nodemailer Info] EMAIL_USER বা EMAIL_PASS সেট করা নেই।');
 }
 
 // --- Middleware ---
@@ -118,8 +116,6 @@ async function flushDataBuffer(collection, devicesCollection) {
 
   const dataToInsert = [...espDataBuffer];
   espDataBuffer = []; // বাফার খালি করা
-
-  console.log(`[Batch Insert] Processing ${dataToInsert.length} documents...`);
 
   try {
     // ১. ডাটা ইনসার্ট
@@ -183,7 +179,6 @@ async function flushDataBuffer(collection, devicesCollection) {
       await devicesCollection.bulkWrite(bulkOps, { ordered: false });
       io.emit('device-status-updated', updatedDeviceUIDs);
     }
-    console.log(`[Batch Insert] Success.`);
 
   } catch (error) {
     console.error("[Batch Insert] Failed! Restoring data:", error.message);
@@ -238,7 +233,6 @@ async function checkOfflineDevices(devicesCollection) {
       { $set: { status: 'offline' } }
     );
 
-    console.log(`[Offline Check] ${uidsToUpdate.length} devices marked offline.`);
     io.emit('device-status-updated', uidsToUpdate);
   } catch (error) {
     console.error('[Offline Check] Error:', error.message);
@@ -256,7 +250,7 @@ function cleanupOldBackupJobs() {
           try {
             fs.rmSync(job.tmpDir, { recursive: true, force: true });
           } catch(e) {
-            console.warn(`[Cleanup] Failed to delete ${job.tmpDir}`, e.message);
+            // silent fail
           }
         }
         backupJobs.delete(jobId);
@@ -281,7 +275,7 @@ async function run() {
         await devicesCollection.createIndex({ uid: 1 }, { unique: true });
         await usersCollection.createIndex({ email: 1 }, { unique: true });
     } catch (idxErr) {
-        console.warn('Index creation warning:', idxErr.message);
+        // silent fail
     }
 
     // টাইমার সেটআপ
@@ -290,7 +284,6 @@ async function run() {
     setInterval(() => checkOfflineDevices(devicesCollection), CHECK_OFFLINE_INTERVAL_MS);
     setInterval(cleanupOldBackupJobs, 15 * 60 * 1000);
 
-    console.log('Running initial device list sync job on startup...');
     syncAllDevices(EspCollection, devicesCollection);
 
     // অ্যাডমিন চেক হেল্পার
@@ -705,16 +698,3 @@ http_server.listen(port, () => {
   console.log(`Max it Production server running at: ${port}`);
   console.log(`Current server time: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })} (Asia/Dhaka)`);
 });
-
-
-
-
-i have update this server
-
-Remember, the XML structure you generate is the only mechanism for applying changes to the user's code. Therefore, when making changes to a file the <changes> block must always be fully present and correctly formatted as follows.
-
-<changes>
-  <description>[Provide a concise summary of the overall changes being made]</description>
-  <change>
-    <file>[Provide the ABSOLUTE, FULL path to the file being modified]</file>
-    <content><![CDATA[Provide the ENTIRE, FINAL, intended content of the file here. Do NOT provide diffs or partial snippets. Ensure all code is properly escaped within the CDATA section.
