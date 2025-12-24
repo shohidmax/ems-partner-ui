@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -247,6 +248,7 @@ function cleanupOldBackupJobs() {
   });
 }
 
+// --- Main run function ---
 async function run() {
   try {
     await client.connect();
@@ -284,10 +286,20 @@ async function run() {
 
     // --- Routes ---
 
+    // Function to parse nested data
+    const parseDeviceData = (body) => {
+        const data = { ...body };
+        // Flatten nested structure
+        data.temperature = body.environment?.temp;
+        data.water_level = body.pssensor?.depth_ft;
+        data.rainfall = body.rain?.mm;
+        return data;
+    }
+
     app.post('/api/esp32pp', async (req, res) => {
       try {
-        const data = req.body;
-        data.timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+        let data = parseDeviceData(req.body);
+        data.timestamp = data.dateTime ? new Date(data.dateTime) : new Date();
         data.receivedAt = new Date();
         espDataBuffer.push(data);
         res.status(200).send({ message: 'Data queued.' });
@@ -298,13 +310,13 @@ async function run() {
 
     app.post('/api/esp32p', async (req, res) => {
       try {
-        const data = req.body;
+        let data = parseDeviceData(req.body);
         
         const bdTime = new Date(Date.now() + (6 * 60 * 60 * 1000));
         data.receivedAt = bdTime; 
 
-        if (data.timestamp && typeof data.timestamp === 'string') {
-          const isoString = data.timestamp.replace(' ', 'T') + "+06:00";
+        if (data.dateTime && typeof data.dateTime === 'string') {
+          const isoString = data.dateTime.replace(' ', 'T') + "+06:00";
           data.timestamp = new Date(isoString);
         } else {
           data.timestamp = bdTime;
