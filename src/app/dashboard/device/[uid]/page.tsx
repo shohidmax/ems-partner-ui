@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
@@ -360,35 +360,35 @@ export default function DeviceDetailsPage() {
 
   const downloadPDF = async () => {
     setIsPdfLoading(true);
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const doc = new (jsPDF as any)('p', 'mm', 'a4');
     const pageMargin = 15;
     let currentY = pageMargin;
 
     if (qrCodeUrl) {
-      pdf.addImage(qrCodeUrl, 'PNG', pdf.internal.pageSize.getWidth() - pageMargin - 30, currentY, 30, 30);
+      doc.addImage(qrCodeUrl, 'PNG', doc.internal.pageSize.getWidth() - pageMargin - 30, currentY, 30, 30);
     }
 
-    pdf.setFontSize(18);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Environmental Monitoring Report', pageMargin, currentY + 5);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Environmental Monitoring Report', pageMargin, currentY + 5);
     currentY += 10;
     
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(`Device UID: ${uid}`, pageMargin, currentY + 5);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Device UID: ${uid}`, pageMargin, currentY + 5);
      if (deviceInfo?.name) {
         currentY += 6;
-        pdf.text(`Device Name: ${deviceInfo.name}`, pageMargin, currentY + 5);
+        doc.text(`Device Name: ${deviceInfo.name}`, pageMargin, currentY + 5);
     }
     if (deviceInfo?.location) {
         currentY += 6;
-        pdf.text(`Location: ${deviceInfo.location}`, pageMargin, currentY + 5);
+        doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY + 5);
     }
     currentY += 25;
 
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Summary', pageMargin, currentY);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Summary', pageMargin, currentY);
     currentY += 8;
 
     const summaryBody: (string | number)[][] = [
@@ -405,7 +405,7 @@ export default function DeviceDetailsPage() {
         summaryBody.push(["Longitude:", deviceInfo.longitude.toString()]);
     }
     
-    (pdf as any).autoTable({
+    autoTable(doc, {
         body: summaryBody,
         startY: currentY,
         theme: 'plain',
@@ -413,16 +413,16 @@ export default function DeviceDetailsPage() {
         columnStyles: { 0: { fontStyle: 'bold' } },
     });
     
-    currentY = (pdf as any).lastAutoTable.finalY + 15;
+    currentY = (doc as any).lastAutoTable.finalY + 15;
 
     const addChartToPdf = async (chartSelector: string, title: string) => {
         const chartEl = document.querySelector<HTMLElement>(chartSelector);
         if (chartEl) {
           const canvas = await html2canvas(chartEl, { backgroundColor: '#ffffff', scale: 2 });
           const imgData = canvas.toDataURL('image/png');
-          const imgProps = pdf.getImageProperties(imgData);
+          const imgProps = doc.getImageProperties(imgData);
           const aspectRatio = imgProps.height / imgProps.width;
-          let imgWidth = pdf.internal.pageSize.getWidth() - 2 * pageMargin;
+          let imgWidth = doc.internal.pageSize.getWidth() - 2 * pageMargin;
           let imgHeight = imgWidth * aspectRatio;
           
           if (imgHeight > 100) {
@@ -430,17 +430,17 @@ export default function DeviceDetailsPage() {
               imgWidth = imgHeight / aspectRatio;
           }
 
-          if (currentY + imgHeight > pdf.internal.pageSize.getHeight() - pageMargin) {
-              pdf.addPage();
+          if (currentY + imgHeight > doc.internal.pageSize.getHeight() - pageMargin) {
+              doc.addPage();
               currentY = pageMargin;
           }
 
-          pdf.setFontSize(14);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(title, pageMargin, currentY);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text(title, pageMargin, currentY);
           currentY += 8;
-          const xOffset = (pdf.internal.pageSize.getWidth() - imgWidth) / 2;
-          pdf.addImage(imgData, 'PNG', xOffset, currentY, imgWidth, imgHeight);
+          const xOffset = (doc.internal.pageSize.getWidth() - imgWidth) / 2;
+          doc.addImage(imgData, 'PNG', xOffset, currentY, imgWidth, imgHeight);
           currentY += imgHeight + 10;
         }
     };
@@ -448,17 +448,17 @@ export default function DeviceDetailsPage() {
     await addChartToPdf('#line-chart-container', 'Sensor History');
     await addChartToPdf('#pie-chart-container', 'Averages (Filtered)');
     
-    if (currentY > pdf.internal.pageSize.getHeight() - 50) {
-        pdf.addPage();
+    if (currentY > doc.internal.pageSize.getHeight() - 50) {
+        doc.addPage();
         currentY = pageMargin;
     }
     
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Filtered Data Points', pageMargin, currentY);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Filtered Data Points', pageMargin, currentY);
     currentY += 8;
 
-    (pdf as any).autoTable({
+    autoTable(doc, {
         head: [['Timestamp', 'Temp (°C)', 'Water (m)', 'Rain (mm)']],
         body: deviceHistory.map(d => [
             formatToBDTime(d.timestamp),
@@ -472,7 +472,7 @@ export default function DeviceDetailsPage() {
         styles: { fontSize: 8 },
     });
     
-    pdf.save(`EMS_Report_${uid}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`EMS_Report_${uid}_${new Date().toISOString().split('T')[0]}.pdf`);
     setIsPdfLoading(false);
   };
   

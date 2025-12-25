@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
 const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
@@ -90,16 +90,16 @@ export default function AdminReportsPage() {
       return;
     }
     setIsPdfLoading(true);
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const doc = new (jsPDF as any)('p', 'mm', 'a4');
     let currentY = 15;
 
-    pdf.setFontSize(18);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Aggregated Data Report', pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Aggregated Data Report', doc.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
     currentY += 10;
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text(`Period: ${period.charAt(0).toUpperCase() + period.slice(1)} | Year: ${year}`, pdf.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Period: ${period.charAt(0).toUpperCase() + period.slice(1)} | Year: ${year}`, doc.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
     currentY += 15;
 
     const chartEl = document.querySelector<HTMLElement>('#report-chart-container');
@@ -110,31 +110,31 @@ export default function AdminReportsPage() {
                 scale: 2 // Increase scale for better resolution
             });
             const imgData = canvas.toDataURL('image/png');
-            const imgProps = pdf.getImageProperties(imgData);
+            const imgProps = doc.getImageProperties(imgData);
             const aspectRatio = imgProps.height / imgProps.width;
-            let imgWidth = pdf.internal.pageSize.getWidth() - 30; // 15mm margin on each side
+            let imgWidth = doc.internal.pageSize.getWidth() - 30; // 15mm margin on each side
             let imgHeight = imgWidth * aspectRatio;
 
-            pdf.addImage(imgData, 'PNG', 15, currentY, imgWidth, imgHeight);
+            doc.addImage(imgData, 'PNG', 15, currentY, imgWidth, imgHeight);
             currentY += imgHeight + 10;
         } catch (error) {
             console.error("Error generating chart image:", error);
-            pdf.text("Could not generate chart image.", 15, currentY);
+            doc.text("Could not generate chart image.", 15, currentY);
             currentY += 10;
         }
     }
 
-    if (currentY > pdf.internal.pageSize.getHeight() - 40) { // Check if space is left for table
-        pdf.addPage();
+    if (currentY > doc.internal.pageSize.getHeight() - 40) { // Check if space is left for table
+        doc.addPage();
         currentY = 15;
     }
 
-    pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Report Data Table', 15, currentY);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Report Data Table', 15, currentY);
     currentY += 8;
 
-    (pdf as any).autoTable({
+    autoTable(doc, {
       head: [['Period', 'Avg Temp (°C)', 'Avg Rain (mm)', 'Data Points']],
       body: data.map(d => [
         d.date || d.month || d.year?.toString(),
@@ -148,7 +148,7 @@ export default function AdminReportsPage() {
       styles: { fontSize: 8 },
     });
 
-    pdf.save(`EMS_Report_${period}_${year}.pdf`);
+    doc.save(`EMS_Report_${period}_${year}.pdf`);
     setIsPdfLoading(false);
   };
 
