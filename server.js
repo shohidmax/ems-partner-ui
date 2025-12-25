@@ -671,43 +671,52 @@ adminRouter.post('/backup/start', async (req, res) => {
 });
 
 adminRouter.get('/backup/status/:jobId', (req, res) => {
-    const job = backupJobs.get(req.params.jobId);
-    if(!job) return res.status(404).send({message: 'Not found'});
+    const jobId = req.params.jobId;
+    const token = req.query.token; // Get token from query string for GET request
+
+    if (!token) return res.status(401).send({ message: 'Token missing' });
     
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).send({ message: 'Invalid token' });
 
-    const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+        const job = backupJobs.get(jobId);
+        if(!job) return res.status(404).send({message: 'Not found'});
+        
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
 
-    sendEvent({ status: job.status, progress: job.progress, error: job.error });
+        const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-    if (job.status === 'done' || job.status === 'error') {
-        if (job.status === 'done') {
-            sendEvent({ status: 'done', progress: 100, download: job.downloadUrl });
-        }
-        return res.end();
-    }
+        sendEvent({ status: job.status, progress: job.progress, error: job.error });
 
-    const iv = setInterval(() => {
-        const currentJob = backupJobs.get(req.params.jobId);
-        if (!currentJob) {
-            clearInterval(iv);
+        if (job.status === 'done' || job.status === 'error') {
+            if (job.status === 'done') {
+                sendEvent({ status: 'done', progress: 100, download: job.downloadUrl });
+            }
             return res.end();
         }
-        
-        sendEvent({ status: currentJob.status, progress: currentJob.progress, error: currentJob.error });
-        
-        if (currentJob.status === 'done' || currentJob.status === 'error') {
-             if (currentJob.status === 'done') {
-                sendEvent({ status: 'done', progress: 100, download: currentJob.downloadUrl });
-            }
-            clearInterval(iv);
-            res.end();
-        }
-    }, 1000);
 
-    req.on('close', () => clearInterval(iv));
+        const iv = setInterval(() => {
+            const currentJob = backupJobs.get(jobId);
+            if (!currentJob) {
+                clearInterval(iv);
+                return res.end();
+            }
+            
+            sendEvent({ status: currentJob.status, progress: currentJob.progress, error: currentJob.error });
+            
+            if (currentJob.status === 'done' || currentJob.status === 'error') {
+                 if (currentJob.status === 'done') {
+                    sendEvent({ status: 'done', progress: 100, download: currentJob.downloadUrl });
+                }
+                clearInterval(iv);
+                res.end();
+            }
+        }, 1000);
+
+        req.on('close', () => clearInterval(iv));
+    });
 });
 
 adminRouter.get('/backup/download/:jobId', (req, res) => {
@@ -766,3 +775,4 @@ async function startServer() {
 startServer();
 
 update this server
+```
