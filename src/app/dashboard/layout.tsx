@@ -13,6 +13,7 @@ import {
   SidebarTrigger,
   SidebarInset,
   SidebarGroup,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -210,3 +211,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </SidebarInset>
       </div>
+    </SidebarProvider>
+  );
+}
