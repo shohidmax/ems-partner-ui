@@ -13,6 +13,10 @@ import { AddDeviceDialog } from "@/components/add-device-dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const API_URL_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
+
 interface UserDevice {
     uid: string;
     name: string | null;
@@ -36,7 +40,7 @@ export default function ProfilePage() {
         const token = localStorage.getItem('token');
         if (user && token) {
             try {
-                const response = await fetch('https://emspartner.espserver.site/api/user/devices', {
+                const response = await fetch(`${API_URL_BASE}/api/protected/devices`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if(response.ok) {

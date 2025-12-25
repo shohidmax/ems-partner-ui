@@ -10,8 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/hooks/use-user';
 
-const API_BASE_URL = 'https://emspartner.espserver.site';
-const API_URL = `${API_BASE_URL}/api/backup`;
+const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
+const API_URL = `${API_BASE_URL}/api/admin/backup`;
 
 interface JobStatus {
     status: 'pending' | 'counting' | 'exporting' | 'zipping' | 'done' | 'error';
@@ -198,5 +200,3 @@ export default function BackupPage() {
         </div>
     );
 }
-
-    

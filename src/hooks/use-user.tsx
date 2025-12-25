@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
-const API_URL = 'https://emspartner.espserver.site';
+
+const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
 
 export interface UserProfile {
     _id: string;

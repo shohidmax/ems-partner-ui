@@ -8,7 +8,9 @@ import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download, User 
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 
-const API_URL = 'https://emspartner.espserver.site';
+const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
 
 interface AdminStats {
   totalDevices: number;

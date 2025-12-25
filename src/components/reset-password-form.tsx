@@ -18,7 +18,9 @@ import { Mail, Loader2 } from 'lucide-react';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-const API_URL = 'https://emspartner.espserver.site/api/user/password/forgot';
+const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002/api/user/password/forgot'
+    : 'https://emspartner.espserver.site/api/user/password/forgot';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, Copy, Thermometer, Droplets, CloudRain, Pin, Search, Plus, Loader2, MapPin } from 'lucide-react';
+import { TriangleAlert, Copy, Thermometer, Droplets, CloudRain, Pin, Search, Plus, Loader2, MapPin, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUser } from '@/hooks/use-user';
@@ -17,7 +17,9 @@ import { AddDeviceDialog } from '@/components/add-device-dialog';
 import { Badge } from '@/components/ui/badge';
 
 
-const API_URL = 'https://emspartner.espserver.site/api/protected/devices';
+const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002/api/protected/devices'
+    : 'https://emspartner.espserver.site/api/protected/devices';
 
 interface DeviceInfo {
   uid: string;

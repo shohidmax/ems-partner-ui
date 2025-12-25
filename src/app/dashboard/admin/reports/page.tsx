@@ -11,7 +11,9 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
-const API_URL = 'https://emspartner.espserver.site/api/admin/report';
+const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002/api/admin/report'
+    : 'https://emspartner.espserver.site/api/admin/report';
 
 type ReportPeriod = 'daily' | 'monthly' | 'yearly';
 

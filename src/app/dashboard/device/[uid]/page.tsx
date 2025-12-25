@@ -21,7 +21,9 @@ import { Label } from '@/components/ui/label';
 import { formatToBDTime } from '@/lib/utils';
 
 
-const API_URL_BASE = 'https://emspartner.espserver.site';
+const API_URL_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
 
 interface DeviceInfo {
   uid: string;

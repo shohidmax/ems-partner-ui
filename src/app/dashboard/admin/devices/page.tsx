@@ -16,7 +16,9 @@ import { cn, formatToBDTime } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-const API_BASE_URL = 'https://emspartner.espserver.site/api';
+const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002/api'
+    : 'https://emspartner.espserver.site/api';
 
 interface DeviceOwner {
     _id: string;
@@ -106,7 +108,7 @@ export default function AdminDeviceManagerPage() {
       if (latitude !== undefined) body.latitude = latitude;
       if (longitude !== undefined) body.longitude = longitude;
 
-      const response = await fetch(`${API_BASE_URL}/device/${uid}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/device/${uid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -218,12 +220,13 @@ export default function AdminDeviceManagerPage() {
         <TooltipProvider>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredDevices.map(device => (
-                    <Card key={device.uid} className="h-full flex flex-col transition-all duration-300 ease-in-out hover:shadow-primary/20 hover:shadow-lg hover:-translate-y-1">
+                  <Link key={device.uid} href={`/dashboard/device/${device.uid}`} className="block group">
+                    <Card className="h-full flex flex-col transition-all duration-300 ease-in-out group-hover:shadow-primary/20 group-hover:shadow-lg group-hover:-translate-y-1">
                         <CardHeader className="relative pb-4">
                              <div className="absolute top-4 right-4 flex items-center gap-2">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => handleEdit(device)}>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleEdit(device);}}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger>
@@ -297,6 +300,7 @@ export default function AdminDeviceManagerPage() {
                             </Button>
                          </div>
                     </Card>
+                  </Link>
                 ))}
                 {filteredDevices.length === 0 && (
                      <div className="col-span-full text-center text-muted-foreground h-40 flex items-center justify-center">
@@ -308,5 +312,3 @@ export default function AdminDeviceManagerPage() {
     </div>
   );
 }
-
-    
