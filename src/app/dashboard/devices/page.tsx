@@ -17,7 +17,7 @@ import { AddDeviceDialog } from '@/components/add-device-dialog';
 import { Badge } from '@/components/ui/badge';
 
 
-const API_URL = 'https://emspartner.espserver.site/api/user/devices';
+const API_URL = 'https://emspartner.espserver.site/api/protected/devices';
 
 interface DeviceInfo {
   uid: string;
@@ -305,12 +305,26 @@ export default function DeviceListPage() {
                         </span>
                       </div>
                     </CardContent>
-                     <div className="p-6 pt-4">
-                         <p className="text-xs text-muted-foreground">Last updated: {device.lastSeen ? formatToBDTime(device.lastSeen) : 'Never'}</p>
+                     <div className="p-4 pt-4 border-t flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                            Last seen: {device.lastSeen ? formatToBDTime(device.lastSeen) : 'Never'}
+                        </p>
+                         <Button asChild variant="outline" size="icon" className="h-8 w-8">
+                            <Link href={`/dashboard/device/${device.uid}`}>
+                                <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        </Button>
                      </div>
                   </Card>
                 </Link>
               )})
             ) : (
               !error && <div className="col-span-full text-center text-muted-foreground h-40 flex items-center justify-center">
-                <p>{searchQuery ? `No devices found for "${searchQuery}".` : "You have no devices registered to your account yet. Click 'Add Device' to get started."}</
+                <p>{searchQuery ? `No devices found for "${searchQuery}".` : "You have no devices registered to your account yet. Click 'Add Device' to get started."}</p>
+              </div>
+            )}
+        </div>
+      </TooltipProvider>
+    </div>
+  );
+}
