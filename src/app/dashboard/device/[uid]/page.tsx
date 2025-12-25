@@ -212,32 +212,34 @@ export default function DeviceDetailsPage() {
 
   const fetchDeviceInfo = useCallback(async () => {
     if (!token || !uid) return;
-     try {
+    try {
         const headers = { 'Authorization': `Bearer ${token}` };
         const infoUrl = isAdmin ? `${API_URL_BASE}/api/admin/devices` : `${API_URL_BASE}/api/protected/devices`;
         const infoResponse = await fetch(infoUrl, { headers });
 
-        if (infoResponse.ok) {
-            const devices: any[] = await infoResponse.json();
-            const currentDevice = devices.find(d => d.uid === uid);
-            
-            if (!currentDevice) {
-                setError(`Device with UID ${uid} not found.`);
-            } else {
-                 setDeviceInfo(currentDevice);
-                 setEditingName(currentDevice?.name || '');
-                 setEditingLocation(currentDevice?.location || '');
-                 setEditingLatitude(currentDevice?.latitude);
-                 setEditingLongitude(currentDevice?.longitude);
-                 setEditingDivision(currentDevice?.division);
-            }
-        } else {
-             setError("Could not verify device ownership.");
+        if (!infoResponse.ok) {
+            setError("Could not verify device ownership.");
+            return;
         }
+
+        const devices: DeviceInfo[] = await infoResponse.json();
+        const currentDevice = devices.find(d => d.uid === uid);
+        
+        if (currentDevice) {
+            setDeviceInfo(currentDevice);
+            setEditingName(currentDevice.name || '');
+            setEditingLocation(currentDevice.location || '');
+            setEditingLatitude(currentDevice.latitude);
+            setEditingLongitude(currentDevice.longitude);
+            setEditingDivision(currentDevice.division);
+        } else {
+            setError(`Device with UID ${uid} not found or you don't have access.`);
+        }
+
     } catch(e) {
         setError("An error occurred while fetching device details.");
     }
-  }, [token, uid, isAdmin]);
+}, [token, uid, isAdmin]);
 
   useEffect(() => {
     if (token && uid) {
@@ -472,11 +474,11 @@ export default function DeviceDetailsPage() {
     setIsPdfLoading(false);
   };
   
-  if (loading && deviceHistory.length === 0 && !error) {
+  if (loading && deviceHistory.length === 0 && !deviceInfo) {
     return <div className="flex h-full w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
-  if (error && !deviceHistory.length) {
+  if (error) {
     return (
       <div className="m-auto">
         <Alert variant="destructive">
@@ -586,7 +588,7 @@ export default function DeviceDetailsPage() {
         )}
       </div>
 
-      {error && (
+      {error && !deviceInfo && (
          <Alert variant="destructive">
           <TriangleAlert className="h-4 w-4" />
           <AlertTitle>An Error Occurred</AlertTitle>
@@ -764,4 +766,6 @@ export default function DeviceDetailsPage() {
           {isPdfLoading ? 'Generating Report...' : 'Download PDF Report'}
         </Button>
       </div>
-    
+    </div>
+  );
+}
