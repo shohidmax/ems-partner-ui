@@ -32,7 +32,7 @@ export function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const { login } = useUser();
+  const { login, user } = useUser();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -52,7 +52,7 @@ export function LoginForm() {
             title: 'Login Successful',
             description: 'Welcome back! Redirecting...',
           });
-        // The redirection is now handled by the useUser hook
+          // The redirection is now handled by the useUser hook's useEffect
         } 
       } catch (error: any) {
          toast({
@@ -138,7 +138,4 @@ export function LoginForm() {
       </div>
       <p className="text-center text-sm text-muted-foreground">
         This system uses a custom backend. Google Sign-In is not supported.
-      </p>
-    </div>
-  );
-}
+      </p

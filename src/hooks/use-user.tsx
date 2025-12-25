@@ -56,7 +56,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setToken(null);
         setIsAdmin(false);
         setIsLoading(false); 
-        if (!['/login', '/register', '/'].includes(pathname)) {
+        const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
+        if (!isAuthPage && pathname !== '/') {
             router.replace('/login');
         }
     }, [router, pathname]);
@@ -73,6 +74,12 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
              if (!response.ok) {
+                 if (response.status === 401 || response.status === 403) {
+                    console.error('Auth error, logging out.');
+                } else {
+                    const errorBody = await response.text();
+                    console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
+                }
                 logout();
                 return;
             }
@@ -152,13 +159,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     localStorage.setItem('token', data.token);
                 }
                 await fetchUserProfile();
-                setIsLoading(false); // Explicitly set loading to false after successful login and profile fetch
+                setIsLoading(false);
                 return true;
             }
 
             throw new Error('Login process failed: No token received.');
         } catch (error: any) {
-            logout(); // This will set loading to false
+            logout(); 
             throw error;
         }
     };

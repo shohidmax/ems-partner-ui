@@ -52,6 +52,9 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             pass: process.env.EMAIL_PASS,
         },
     });
+    console.log('[Email] ইমেইল সিস্টেম সক্রিয় আছে।');
+} else {
+    console.warn('[Email] ইমেইল কনফিগারেশন পাওয়া যায়নি।');
 }
 
 // --- মিডলওয়্যার ---
@@ -206,7 +209,6 @@ async function processDataBuffer() {
             io.emit('device-status-updated', Array.from(uniqueDevices.keys()));
         }
         
-
     } catch (error) {
         // ফেইল করলে ডাটা আবার বাফারে ফেরত পাঠানো যেতে পারে, তবে মেমরি লিক এড়াতে এখানে ইগনোর করা হলো
     }
@@ -345,7 +347,8 @@ authRouter.post('/register', async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
         await users.insertOne({
             name, email, passwordHash,
-            devices: [], createdAt: new Date(), isAdmin: false
+            devices: [], createdAt: new Date(), isAdmin: false,
+            address: null, mobile: null
         });
         
         res.send({ success: true, message: 'User registered' });
@@ -391,13 +394,36 @@ authRouter.post('/password/forgot', async (req, res) => {
     } catch (e) { res.status(500).send({ error: e.message }); }
 });
 
+authRouter.post('/password/change', authenticateJWT, async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        if (!oldPassword || !newPassword) return res.status(400).send({ message: "Old and new passwords are required." });
+
+        const user = await req.db.collection('users').findOne({ _id: new ObjectId(req.user.userId) });
+        if (!user) return res.status(404).send({ message: "User not found." });
+
+        const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+        if (!isMatch) return res.status(401).send({ message: "Invalid old password." });
+        
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        await req.db.collection('users').updateOne({ _id: user._id }, { $set: { passwordHash: newPasswordHash } });
+
+        res.send({ success: true, message: 'Password changed successfully.' });
+    } catch (e) {
+        res.status(500).send({ error: e.message });
+    }
+});
+
+
 // ৪. ইউজার প্রোটেক্টেড রাউটস
 const userRouter = express.Router();
 userRouter.use(authenticateJWT);
 
 userRouter.get('/profile', async (req, res) => {
     const user = await req.db.collection('users').findOne({ _id: new ObjectId(req.user.userId) }, { projection: { passwordHash: 0 } });
-    if(user) user.isAdmin = user.isAdmin || (process.env.ADMIN_EMAIL === user.email);
+    if(user) {
+        user.isAdmin = user.isAdmin || (process.env.ADMIN_EMAIL === user.email);
+    }
     res.send(user || {});
 });
 
@@ -418,6 +444,25 @@ userRouter.post('/device/add', async (req, res) => {
         { $addToSet: { devices: String(uid).trim() } }
     );
     res.send({ success: true, message: 'Device Added' });
+});
+
+userRouter.post('/profile/update', async (req, res) => {
+    try {
+        const { name, address, mobile } = req.body;
+        const updateFields = {};
+        if (name) updateFields.name = name;
+        if (address) updateFields.address = address;
+        if (mobile) updateFields.mobile = mobile;
+
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).send({ message: "No fields to update." });
+        }
+        
+        await req.db.collection('users').updateOne({ _id: new ObjectId(req.user.userId) }, { $set: updateFields });
+        res.send({ success: true, message: "Profile updated." });
+    } catch (e) {
+        res.status(500).send({ error: e.message });
+    }
 });
 
 // ৫. অ্যাডমিন রাউটস
@@ -470,11 +515,17 @@ adminRouter.put('/device/:uid', async (req, res) => {
     }
 });
 
+adminRouter.get('/users', async (req, res) => {
+    const users = await req.db.collection('users').find({}, { projection: { passwordHash: 0 } }).toArray();
+    res.send(users);
+});
+
+
 // --- রাউটার মাউন্টিং ---
-app.use('/api', iotRouter);       // /api/esp32p...
-app.use('/api/public', publicRouter); // /api/public/device/data
-app.use('/api/user', authRouter); // /api/user/login, /register
-app.use('/api/protected', userRouter); // /api/protected/profile
+app.use('/api', iotRouter);
+app.use('/api/public', publicRouter);
+app.use('/api/user', authRouter);
+app.use('/api/protected', userRouter);
 app.use('/api/admin', adminRouter);
 
 // রুট রুট
@@ -490,6 +541,7 @@ async function startServer() {
         const client = new MongoClient(MONGODB_URI);
         await client.connect();
         db = client.db('Esp32data');
+        console.log('[Database] MongoDB Connected Successfully');
 
         // ইনডেক্স তৈরি (একবার রান হবে)
         db.collection('espdata2').createIndex({ timestamp: -1 });
@@ -504,14 +556,14 @@ async function startServer() {
 
         // সার্ভার লিসেন
         http_server.listen(PORT, () => {
+            console.log(`[Server] Running on port ${PORT}`);
         });
 
     } catch (error) {
+        console.error('[Startup Error]', error);
         process.exit(1);
     }
 }
 
 // স্টার্ট!
 startServer();
-
-    
