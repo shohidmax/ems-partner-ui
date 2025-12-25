@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -106,7 +105,7 @@ export default function AdminDeviceManagerPage() {
       if (latitude !== undefined) body.latitude = latitude;
       if (longitude !== undefined) body.longitude = longitude;
 
-      const response = await fetch(`${API_BASE_URL}/device/${uid}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/device/${uid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -300,11 +299,4 @@ export default function AdminDeviceManagerPage() {
                 ))}
                 {filteredDevices.length === 0 && (
                      <div className="col-span-full text-center text-muted-foreground h-40 flex items-center justify-center">
-                        <p>{searchQuery ? `No devices found for "${searchQuery}".` : "No devices found."}</p>
-                    </div>
-                )}
-            </div>
-        </TooltipProvider>
-    </div>
-  );
-}
+                        <p>{searchQuery ? `No devices found for "${searchQuery}".` : "No devices found."

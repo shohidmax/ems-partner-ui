@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -81,7 +80,7 @@ const authenticateJWT = (req, res, next) => {
     if (!token) return res.status(401).send({ success: false, message: 'Token missing' });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).send({ success: false, message: 'Invalid or expired token' });
+        if (err) return res.status(403).send({ success: false, message: 'Invalid token' });
         req.user = user;
         next();
     });
@@ -128,6 +127,7 @@ function parseCustomDateTime(dateStr) {
         // Note: Months are 0-indexed in JS Date (0 = Jan, 11 = Dec)
         return new Date(dateParts[2], parseInt(dateParts[1], 10) - 1, dateParts[0], hours, minutes, seconds);
     } catch (e) {
+        console.error("Date parsing error:", e);
         return null;
     }
 }
@@ -209,7 +209,10 @@ async function processDataBuffer() {
             io.emit('device-status-updated', Array.from(uniqueDevices.keys()));
         }
         
+        console.log(`[Batch] ${dataToInsert.length} records processed.`);
+
     } catch (error) {
+        console.error('[Batch Error]', error.message);
         // ফেইল করলে ডাটা আবার বাফারে ফেরত পাঠানো যেতে পারে, তবে মেমরি লিক এড়াতে এখানে ইগনোর করা হলো
     }
 }
@@ -227,9 +230,11 @@ async function checkOfflineDevices() {
         );
 
         if (result.modifiedCount > 0) {
+            console.log(`[Offline Monitor] ${result.modifiedCount} devices marked offline.`);
             // এখানে সকেট ইভেন্ট পাঠানো যেতে পারে রিফ্রেশ করার জন্য
         }
     } catch (error) {
+        console.error('[Offline Monitor Error]', error);
     }
 }
 
@@ -347,8 +352,7 @@ authRouter.post('/register', async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
         await users.insertOne({
             name, email, passwordHash,
-            devices: [], createdAt: new Date(), isAdmin: false,
-            address: null, mobile: null
+            devices: [], createdAt: new Date(), isAdmin: false
         });
         
         res.send({ success: true, message: 'User registered' });
@@ -421,29 +425,8 @@ userRouter.use(authenticateJWT);
 
 userRouter.get('/profile', async (req, res) => {
     const user = await req.db.collection('users').findOne({ _id: new ObjectId(req.user.userId) }, { projection: { passwordHash: 0 } });
-    if(user) {
-        user.isAdmin = user.isAdmin || (process.env.ADMIN_EMAIL === user.email);
-    }
+    if(user) user.isAdmin = user.isAdmin || (process.env.ADMIN_EMAIL === user.email);
     res.send(user || {});
-});
-
-userRouter.get('/devices', async (req, res) => {
-    const user = await req.db.collection('users').findOne({ _id: new ObjectId(req.user.userId) });
-    if (!user || !user.devices) return res.send([]);
-
-    const devices = await req.db.collection('devices').find({ uid: { $in: user.devices } }).toArray();
-    res.send(devices);
-});
-
-userRouter.post('/device/add', async (req, res) => {
-    const { uid } = req.body;
-    if(!uid) return res.status(400).send({message: 'UID needed'});
-    
-    await req.db.collection('users').updateOne(
-        { _id: new ObjectId(req.user.userId) },
-        { $addToSet: { devices: String(uid).trim() } }
-    );
-    res.send({ success: true, message: 'Device Added' });
 });
 
 userRouter.post('/profile/update', async (req, res) => {
@@ -465,6 +448,26 @@ userRouter.post('/profile/update', async (req, res) => {
     }
 });
 
+
+userRouter.get('/devices', async (req, res) => {
+    const user = await req.db.collection('users').findOne({ _id: new ObjectId(req.user.userId) });
+    if (!user || !user.devices) return res.send([]);
+
+    const devices = await req.db.collection('devices').find({ uid: { $in: user.devices } }).toArray();
+    res.send(devices);
+});
+
+userRouter.post('/device/add', async (req, res) => {
+    const { uid } = req.body;
+    if(!uid) return res.status(400).send({message: 'UID needed'});
+    
+    await req.db.collection('users').updateOne(
+        { _id: new ObjectId(req.user.userId) },
+        { $addToSet: { devices: String(uid).trim() } }
+    );
+    res.send({ success: true, message: 'Device Added' });
+});
+
 // ৫. অ্যাডমিন রাউটস
 const adminRouter = express.Router();
 adminRouter.use(authenticateJWT, ensureAdmin);
@@ -478,6 +481,43 @@ adminRouter.get('/stats', async (req, res) => {
     };
     res.send(stats);
 });
+
+adminRouter.get('/devices', async (req, res) => {
+    try {
+        // Step 1: Get all devices
+        const devices = await req.db.collection('devices').find({}).toArray();
+        const allDeviceUIDs = devices.map(d => d.uid);
+
+        // Step 2: Get all users who own any of these devices
+        const users = await req.db.collection('users').find(
+            { devices: { $in: allDeviceUIDs } },
+            { projection: { _id: 1, name: 1, email: 1, devices: 1 } }
+        ).toArray();
+
+        // Step 3: Create a map for quick user lookup
+        const userMap = new Map();
+        users.forEach(user => {
+            user.devices.forEach(uid => {
+                if (!userMap.has(uid)) {
+                    userMap.set(uid, []);
+                }
+                userMap.get(uid).push({ _id: user._id, name: user.name, email: user.email });
+            });
+        });
+
+        // Step 4: Combine device info with owner info
+        const result = devices.map(device => ({
+            ...device,
+            owners: userMap.get(device.uid) || []
+        }));
+
+        res.send(result);
+    } catch (error) {
+        console.error('Error in /api/admin/devices:', error);
+        res.status(500).send({ success: false, message: 'Internal server error' });
+    }
+});
+
 
 // ডিভাইস আপডেট করার জন্য নতুন রাউট
 adminRouter.put('/device/:uid', async (req, res) => {
@@ -511,21 +551,16 @@ adminRouter.put('/device/:uid', async (req, res) => {
 
         res.send({ success: true, message: `Device ${uid} updated successfully.` });
     } catch (error) {
+        console.error('Error in /api/admin/device/:uid (PUT):', error);
         res.status(500).send({ success: false, message: 'Internal server error' });
     }
 });
 
-adminRouter.get('/users', async (req, res) => {
-    const users = await req.db.collection('users').find({}, { projection: { passwordHash: 0 } }).toArray();
-    res.send(users);
-});
-
-
 // --- রাউটার মাউন্টিং ---
-app.use('/api', iotRouter);
-app.use('/api/public', publicRouter);
-app.use('/api/user', authRouter);
-app.use('/api/protected', userRouter);
+app.use('/api', iotRouter);       // /api/esp32p...
+app.use('/api/public', publicRouter); // /api/public/device/data
+app.use('/api/user', authRouter); // /api/user/login, /register
+app.use('/api/protected', userRouter); // /api/protected/profile, /devices
 app.use('/api/admin', adminRouter);
 
 // রুট রুট
@@ -557,6 +592,7 @@ async function startServer() {
         // সার্ভার লিসেন
         http_server.listen(PORT, () => {
             console.log(`[Server] Running on port ${PORT}`);
+            console.log(`[Time] Server Time: ${new Date().toString()}`);
         });
 
     } catch (error) {
