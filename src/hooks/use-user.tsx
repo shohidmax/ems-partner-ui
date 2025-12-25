@@ -74,7 +74,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             });
              if (!response.ok) {
                 const errorBody = await response.text();
-                console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
                 logout();
                 return;
             }
@@ -84,7 +83,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             setToken(currentToken);
 
         } catch (error) {
-             console.error("Error fetching full user profile:", error);
              logout();
         }
     }, [logout]);
@@ -93,28 +91,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(true);
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-        if (tokenFromStorage) {
-            try {
-                const decoded = jwtDecode<DecodedToken>(tokenFromStorage);
-                if (decoded.exp * 1000 < Date.now()) {
-                    logout();
-                } else {
-                    await fetchUserProfile();
-                }
-            } catch (error) {
-                console.error("Initialization failed, logging out:", error);
-                logout();
-            }
-        } else {
-            // If no token, we are not logged in.
-            setIsLoading(false);
-        }
-        // setLoading(false) should be called inside fetchUserProfile or logout to avoid race conditions.
-        // But for the no-token case, it is safe here.
-        // For the token case, fetchUserProfile will eventually call setLoading(false) via logout or success.
-        // A better approach is to have a final "done" state.
-        
-        // Let's ensure loading is always turned off.
         const finalizer = () => setIsLoading(false);
         
         if (tokenFromStorage) {
@@ -128,7 +104,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     finalizer();
                 }
             } catch (error) {
-                console.error("Initialization failed, logging out:", error);
                 logout();
                 finalizer();
             }
@@ -184,11 +159,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
             throw new Error('Login process failed: No token received.');
         } catch (error: any) {
-            console.error('Login error:', error);
             logout(); // This will set loading to false
             throw error;
         }
-        // No need for a finally block to set loading false, as logout() does it on error, and we do it on success.
     };
     
     const value = { 
