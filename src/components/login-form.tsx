@@ -32,7 +32,7 @@ export function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const { login, user } = useUser();
+  const { login, user, isAdmin } = useUser();
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -138,4 +138,7 @@ export function LoginForm() {
       </div>
       <p className="text-center text-sm text-muted-foreground">
         This system uses a custom backend. Google Sign-In is not supported.
-      </p
+      </p>
+    </div>
+  );
+}
