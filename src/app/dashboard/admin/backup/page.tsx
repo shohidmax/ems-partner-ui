@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Download, Loader2, TriangleAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { useUser } from '@/hooks/use-user';
 
 const API_BASE_URL = 'https://emspartner.espserver.site';
 const API_URL = `${API_BASE_URL}/api/backup`;
@@ -16,6 +17,7 @@ interface JobStatus {
     status: 'pending' | 'counting' | 'exporting' | 'zipping' | 'done' | 'error';
     progress: number;
     error: string | null;
+    download?: string;
 }
 
 export default function BackupPage() {
@@ -27,6 +29,7 @@ export default function BackupPage() {
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
     const eventSourceRef = useRef<EventSource | null>(null);
+    const { token } = useUser();
 
     useEffect(() => {
         return () => {
@@ -37,6 +40,11 @@ export default function BackupPage() {
     }, []);
 
     const startBackup = async () => {
+        if (!token) {
+            toast({ title: 'Authentication Error', description: 'You are not logged in.', variant: 'destructive' });
+            return;
+        }
+
         setIsStarting(true);
         setError(null);
         setJobId(null);
@@ -49,11 +57,17 @@ export default function BackupPage() {
         try {
             const response = await fetch(`${API_URL}/start`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ uid: uid || undefined })
             });
 
-            if (!response.ok) throw new Error('Failed to start backup job.');
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to start backup job.');
+            }
             
             const { jobId: newJobId } = await response.json();
             setJobId(newJobId);
@@ -68,29 +82,30 @@ export default function BackupPage() {
     };
 
     const listenToJob = (id: string) => {
-        const es = new EventSource(`${API_URL}/status/${id}`);
+        if (!token) return;
+        const es = new EventSource(`${API_URL}/status/${id}?token=${token}`);
         eventSourceRef.current = es;
 
         es.onmessage = (event) => {
-            // Generic message handler if needed
-        };
-
-        es.addEventListener('progress', (event) => {
             const data: JobStatus = JSON.parse(event.data);
             setJobStatus(data);
-        });
 
-        es.addEventListener('done', (event) => {
-            const data = JSON.parse(event.data);
-             setJobStatus({ status: data.status, progress: 100, error: data.error });
-            if (data.status === 'done') {
-                setDownloadUrl(data.download);
-                toast({ title: 'Success', description: 'Backup is ready for download.' });
-            } else {
-                 toast({ title: 'Error', description: data.error || 'Backup job failed.', variant: 'destructive' });
+            if(data.status === 'done') {
+                if (data.download) {
+                    setDownloadUrl(data.download);
+                    toast({ title: 'Success', description: 'Backup is ready for download.' });
+                } else {
+                     toast({ title: 'Warning', description: 'Job finished but no download link provided.', variant: 'default' });
+                }
+                es.close();
             }
-            es.close();
-        });
+
+            if(data.status === 'error') {
+                toast({ title: 'Error', description: data.error || 'Backup job failed.', variant: 'destructive' });
+                setError(data.error || 'Backup job failed.');
+                es.close();
+            }
+        };
 
         es.onerror = () => {
             setError('Connection to server lost. Please check the console or try again.');
@@ -106,7 +121,7 @@ export default function BackupPage() {
                 <p className="text-muted-foreground">Create and download a full backup of the sensor data.</p>
             </div>
 
-            {error && (
+            {error && !jobStatus?.error && (
                  <Alert variant="destructive">
                     <TriangleAlert className="h-4 w-4" />
                     <AlertTitle>An Error Occurred</AlertTitle>
@@ -183,3 +198,5 @@ export default function BackupPage() {
         </div>
     );
 }
+
+    

@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -502,6 +503,88 @@ async function run() {
         }
     });
 
+    // Admin: Stats
+    app.get('/api/admin/stats', authenticateJWT, async (req, res) => {
+      const check = await ensureAdmin(req, res);
+      if (!check?.ok) return;
+      try {
+        const stats = {
+            totalDevices: await devicesCollection.countDocuments(),
+            onlineDevices: await devicesCollection.countDocuments({ status: 'online' }),
+            totalUsers: await usersCollection.countDocuments()
+        };
+        res.send(stats);
+      } catch(e) {
+        res.status(500).send({ message: 'Error fetching stats'});
+      }
+    });
+
+    // Admin: Reports
+    app.get('/api/admin/report', authenticateJWT, async (req, res) => {
+        const check = await ensureAdmin(req, res);
+        if (!check?.ok) return;
+
+        const { period = 'monthly', year = new Date().getFullYear().toString() } = req.query;
+        let group, sort;
+        const matchYear = parseInt(year, 10);
+
+        switch (period) {
+            case 'daily':
+                group = {
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp', timeZone: 'Asia/Dhaka' } },
+                    avgTemp: { $avg: '$environment.temp' },
+                    avgRain: { $sum: '$rain.mm' },
+                    count: { $sum: 1 }
+                };
+                sort = { '_id': 1 };
+                break;
+            case 'yearly':
+                group = {
+                    _id: { $year: { date: '$timestamp', timeZone: 'Asia/Dhaka' } },
+                    avgTemp: { $avg: '$environment.temp' },
+                    avgRain: { $sum: '$rain.mm' },
+                    count: { $sum: 1 }
+                };
+                sort = { '_id': 1 };
+                break;
+            case 'monthly':
+            default:
+                group = {
+                    _id: { $dateToString: { format: '%Y-%m', date: '$timestamp', timeZone: 'Asia/Dhaka' } },
+                    avgTemp: { $avg: '$environment.temp' },
+                    avgRain: { $sum: '$rain.mm' },
+                    count: { $sum: 1 }
+                };
+                sort = { '_id': 1 };
+        }
+
+        try {
+            const data = await EspCollection.aggregate([
+                { $match: { 
+                    timestamp: { 
+                        $gte: new Date(matchYear, 0, 1), 
+                        $lt: new Date(matchYear + 1, 0, 1)
+                    },
+                    'environment.temp': { $ne: 85 } // Ignore error value
+                } },
+                { $group: group },
+                { $sort: sort },
+                { $project: {
+                    _id: 0,
+                    date: period === 'daily' ? '$_id' : undefined,
+                    month: period === 'monthly' ? '$_id' : undefined,
+                    year: period === 'yearly' ? '$_id' : undefined,
+                    avgTemp: 1,
+                    avgRain: 1,
+                    count: 1
+                }}
+            ]).toArray();
+            res.json(data);
+        } catch (e) {
+            res.status(500).send({ error: e.message });
+        }
+    });
+
     // Admin: Promote/Demote
     app.post('/api/admin/user/make-admin', authenticateJWT, async (req, res) => {
         const check = await ensureAdmin(req, res);
@@ -535,7 +618,10 @@ async function run() {
     });
 
     // 6. Backup System (Same as before)
-    app.post('/api/backup/start', async (req, res) => {
+    app.post('/api/backup/start', authenticateJWT, async (req, res) => {
+        const check = await ensureAdmin(req, res);
+        if (!check?.ok) return;
+
         const { uid } = req.body;
         const q = uid ? { uid: String(uid) } : {};
         const jobId = randomUUID();
@@ -544,6 +630,8 @@ async function run() {
         
         const job = { status: 'pending', progress: 0, tmpDir, zipPath: path.join(tmpDir, 'espdata.zip') };
         backupJobs.set(jobId, job);
+
+        res.send({ jobId });
 
         (async () => {
             try {
@@ -575,29 +663,59 @@ async function run() {
                 await new Promise(r => output.on('close', r));
 
                 job.status = 'done'; job.progress = 100; job.finishedAt = new Date();
-            } catch (err) { job.status = 'error'; job.error = err.message; }
+                 const downloadPath = `/api/backup/download/${jobId}`;
+                 job.downloadUrl = downloadPath; 
+
+            } catch (err) { job.status = 'error'; job.error = err.message; job.finishedAt = new Date(); }
         })();
-        res.send({ jobId });
     });
 
-    app.get('/api/backup/status/:jobId', (req, res) => {
+    app.get('/api/backup/status/:jobId', authenticateJWT, (req, res) => {
         const job = backupJobs.get(req.params.jobId);
         if(!job) return res.status(404).send({message: 'Not found'});
+        
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
+
+        const sendEvent = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+        sendEvent({ status: job.status, progress: job.progress, error: job.error });
+
+        if (job.status === 'done' || job.status === 'error') {
+            if (job.status === 'done') {
+                sendEvent({ status: 'done', progress: 100, download: job.downloadUrl });
+            }
+            return res.end();
+        }
+
         const iv = setInterval(() => {
-            const j = backupJobs.get(req.params.jobId);
-            if (!j) { clearInterval(iv); return res.end(); }
-            res.write(`data: ${JSON.stringify({ status: j.status, progress: j.progress, error: j.error })}\n\n`);
-            if (j.status === 'done' || j.status === 'error') { clearInterval(iv); res.end(); }
+            const currentJob = backupJobs.get(req.params.jobId);
+            if (!currentJob) {
+                clearInterval(iv);
+                return res.end();
+            }
+            
+            sendEvent({ status: currentJob.status, progress: currentJob.progress, error: currentJob.error });
+            
+            if (currentJob.status === 'done' || currentJob.status === 'error') {
+                 if (currentJob.status === 'done') {
+                    sendEvent({ status: 'done', progress: 100, download: currentJob.downloadUrl });
+                }
+                clearInterval(iv);
+                res.end();
+            }
         }, 1000);
+
         req.on('close', () => clearInterval(iv));
     });
 
-    app.get('/api/backup/download/:jobId', (req, res) => {
+    app.get('/api/backup/download/:jobId', authenticateJWT, (req, res) => {
+        const check = ensureAdmin(req, res);
+        if(!check) return;
+
         const job = backupJobs.get(req.params.jobId);
-        if (!job || job.status !== 'done') return res.status(400).send('Not ready');
+        if (!job || job.status !== 'done') return res.status(400).send('Not ready or invalid job ID');
         res.download(job.zipPath, 'espdata.zip');
     });
 
@@ -611,3 +729,6 @@ app.get("/", (req, res) => res.send(`<h1 style="text-align: center; color: green
 http_server.listen(port, () => {
   console.log(`Max it Production server running at: ${port}`);
 });
+
+
+    
