@@ -212,8 +212,9 @@ async function processDataBuffer() {
         console.log(`[Batch] ${dataToInsert.length} records processed.`);
 
     } catch (error) {
-        console.error('[Batch Error]', error.message);
-        // ফেইল করলে ডাটা আবার বাফারে ফেরত পাঠানো যেতে পারে, তবে মেমরি লিক এড়াতে এখানে ইগনোর করা হলো
+        if (error.code !== 11000) { // Ignore duplicate key errors
+             console.error('[Batch Error]', error.message);
+        }
     }
 }
 
@@ -231,7 +232,7 @@ async function checkOfflineDevices() {
 
         if (result.modifiedCount > 0) {
             console.log(`[Offline Monitor] ${result.modifiedCount} devices marked offline.`);
-            // এখানে সকেট ইভেন্ট পাঠানো যেতে পারে রিফ্রেশ করার জন্য
+            io.emit('device-status-updated', { type: 'offline-check' });
         }
     } catch (error) {
         console.error('[Offline Monitor Error]', error);
@@ -243,7 +244,11 @@ function cleanupBackups() {
     const NOW = Date.now();
     backupJobs.forEach((job, id) => {
         if ((job.status === 'done' || job.status === 'error') && (NOW - job.finishedAt > 3600000)) {
-            if (job.tmpDir) fs.rm(job.tmpDir, { recursive: true, force: true }, () => {});
+            if (job.tmpDir) {
+                fs.rm(job.tmpDir, { recursive: true, force: true }, (err) => {
+                    if (err) console.error(`Failed to clean up backup directory: ${job.tmpDir}`, err);
+                });
+            }
             backupJobs.delete(id);
         }
     });
@@ -774,5 +779,4 @@ async function startServer() {
 // স্টার্ট!
 startServer();
 
-update this server
-```
+    
