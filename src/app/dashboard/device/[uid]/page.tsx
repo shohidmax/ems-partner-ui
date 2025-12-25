@@ -768,3 +768,8 @@ export default function DeviceDetailsPage() {
         <Button onClick={downloadPDF} disabled={isPdfLoading || deviceHistory.length === 0}>
           {isPdfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {isPdfLoading ? 'Generating Report...' : 'Download PDF Report'}
+        </Button>
+      </div>
+    </div>
+  );
+}
