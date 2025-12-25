@@ -52,9 +52,6 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             pass: process.env.EMAIL_PASS,
         },
     });
-    console.log('[Email] ইমেইল সিস্টেম সক্রিয় আছে।');
-} else {
-    console.warn('[Email] ইমেইল কনফিগারেশন পাওয়া যায়নি।');
 }
 
 // --- মিডলওয়্যার ---
@@ -81,7 +78,7 @@ const authenticateJWT = (req, res, next) => {
     if (!token) return res.status(401).send({ success: false, message: 'Token missing' });
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).send({ success: false, message: 'Invalid token' });
+        if (err) return res.status(403).send({ success: false, message: 'Invalid or expired token' });
         req.user = user;
         next();
     });
@@ -128,7 +125,6 @@ function parseCustomDateTime(dateStr) {
         // Note: Months are 0-indexed in JS Date (0 = Jan, 11 = Dec)
         return new Date(dateParts[2], parseInt(dateParts[1], 10) - 1, dateParts[0], hours, minutes, seconds);
     } catch (e) {
-        console.error("Date parsing error:", e);
         return null;
     }
 }
@@ -210,10 +206,8 @@ async function processDataBuffer() {
             io.emit('device-status-updated', Array.from(uniqueDevices.keys()));
         }
         
-        console.log(`[Batch] ${dataToInsert.length} records processed.`);
 
     } catch (error) {
-        console.error('[Batch Error]', error.message);
         // ফেইল করলে ডাটা আবার বাফারে ফেরত পাঠানো যেতে পারে, তবে মেমরি লিক এড়াতে এখানে ইগনোর করা হলো
     }
 }
@@ -231,11 +225,9 @@ async function checkOfflineDevices() {
         );
 
         if (result.modifiedCount > 0) {
-            console.log(`[Offline Monitor] ${result.modifiedCount} devices marked offline.`);
             // এখানে সকেট ইভেন্ট পাঠানো যেতে পারে রিফ্রেশ করার জন্য
         }
     } catch (error) {
-        console.error('[Offline Monitor Error]', error);
     }
 }
 
@@ -474,7 +466,6 @@ adminRouter.put('/device/:uid', async (req, res) => {
 
         res.send({ success: true, message: `Device ${uid} updated successfully.` });
     } catch (error) {
-        console.error('Error in /api/admin/device/:uid (PUT):', error);
         res.status(500).send({ success: false, message: 'Internal server error' });
     }
 });
@@ -483,7 +474,7 @@ adminRouter.put('/device/:uid', async (req, res) => {
 app.use('/api', iotRouter);       // /api/esp32p...
 app.use('/api/public', publicRouter); // /api/public/device/data
 app.use('/api/user', authRouter); // /api/user/login, /register
-app.use('/api/protected', userRouter); // /api/protected/profile (নাম পরিবর্তন করেছি যাতে কনফ্লিক্ট না হয়)
+app.use('/api/protected', userRouter); // /api/protected/profile
 app.use('/api/admin', adminRouter);
 
 // রুট রুট
@@ -499,7 +490,6 @@ async function startServer() {
         const client = new MongoClient(MONGODB_URI);
         await client.connect();
         db = client.db('Esp32data');
-        console.log('[Database] MongoDB Connected Successfully');
 
         // ইনডেক্স তৈরি (একবার রান হবে)
         db.collection('espdata2').createIndex({ timestamp: -1 });
@@ -514,12 +504,9 @@ async function startServer() {
 
         // সার্ভার লিসেন
         http_server.listen(PORT, () => {
-            console.log(`[Server] Running on port ${PORT}`);
-            console.log(`[Time] Server Time: ${new Date().toString()}`);
         });
 
     } catch (error) {
-        console.error('[Startup Error]', error);
         process.exit(1);
     }
 }
