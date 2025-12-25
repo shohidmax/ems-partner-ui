@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Home, User, Settings, LogOut, PanelLeft, Loader2, Sun, Moon, List, Shield, Users, BarChart3, HardDrive } from 'lucide-react';
+import { Home, User, Settings, LogOut, PanelLeft, Loader2, Sun, Moon, List, Shield, Users, BarChart3, HardDrive, Download } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -120,19 +120,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               {isAdmin && (
                 <SidebarGroup>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="All Devices" isActive={pathname === '/dashboard/admin/devices'}>
-                        <Link href="/dashboard/admin/devices">
-                            <HardDrive />
-                            <span>All Devices</span>
-                        </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <SidebarGroupLabel>Admin Panel</SidebarGroupLabel>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Device List" isActive={pathname.startsWith('/dashboard/admin/devices')}>
                         <Link href="/dashboard/admin/devices">
-                            <List />
-                            <span>Device List</span>
+                            <HardDrive />
+                            <span>All Devices</span>
                         </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -149,6 +142,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Link href="/dashboard/admin/reports">
                             <BarChart3 />
                             <span>Data Reports</span>
+                        </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Backup" isActive={pathname.startsWith('/dashboard/admin/backup')}>
+                        <Link href="/dashboard/admin/backup">
+                            <Download />
+                            <span>Backup</span>
                         </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -209,6 +210,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </SidebarInset>
       </div>
-    </SidebarProvider>
-  );
-}

@@ -46,7 +46,6 @@ export default function DeviceListPage() {
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
   
   useEffect(() => {
-    // Redirect admin to the admin device management page
     if (isAdmin) {
       router.replace('/dashboard/admin/devices');
     }
@@ -62,7 +61,6 @@ export default function DeviceListPage() {
             setPinnedDevices(new Set(parsedPins));
         }
       } catch (e) {
-        console.error("Failed to parse pinned devices from localStorage", e);
         localStorage.removeItem('pinnedDevices');
       }
     }
@@ -94,11 +92,10 @@ export default function DeviceListPage() {
   };
 
   const fetchData = async () => {
-    if (!token || isAdmin) { // Don't fetch if user is admin, they will be redirected
+    if (!token || isAdmin) { 
         setLoading(false);
         return;
     }
-    // Do not set loading to true to avoid flicker on interval
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
       const response = await fetch(API_URL, { headers, cache: 'no-cache' });
@@ -113,7 +110,6 @@ export default function DeviceListPage() {
       setError(null);
 
     } catch (e: any) {
-      console.error('Failed to fetch data:', e);
       setError('Failed to fetch your devices. The server might be offline or an error occurred. Please try again later.');
     } finally {
       setLoading(false);
@@ -145,7 +141,6 @@ export default function DeviceListPage() {
             if (aIsPinned && !bIsPinned) return -1;
             if (!aIsPinned && bIsPinned) return 1;
 
-            // Fallback to sorting by lastSeen time if both are pinned or unpinned
             if (b.lastSeen && a.lastSeen) {
                 return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
             }
@@ -156,8 +151,8 @@ export default function DeviceListPage() {
   }, [devices, pinnedDevices, searchQuery]);
 
   const onDeviceAdded = () => {
-      fetchUserProfile(); // Refetch user profile from hook
-      fetchData(); // Refetch device list
+      fetchUserProfile(); 
+      fetchData(); 
   };
 
   const onlineDevicesCount = devices.filter(device => device.status === 'online').length;
@@ -318,11 +313,4 @@ export default function DeviceListPage() {
               )})
             ) : (
               !error && <div className="col-span-full text-center text-muted-foreground h-40 flex items-center justify-center">
-                <p>{searchQuery ? `No devices found for "${searchQuery}".` : "You have no devices registered to your account yet. Click 'Add Device' to get started."}</p>
-              </div>
-            )}
-        </div>
-      </TooltipProvider>
-    </div>
-  );
-}
+                <p>{searchQuery ? `No devices found for "${searchQuery}".` : "You have no devices registered to your account yet. Click 'Add Device' to get started."}</

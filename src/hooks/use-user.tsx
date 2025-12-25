@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
@@ -70,15 +69,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/protected/profile`, {
+            const response = await fetch(`${API_URL}/api/user/profile`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
              if (!response.ok) {
                  if (response.status === 401 || response.status === 403) {
-                    console.error('Auth error, logging out.');
                 } else {
                     const errorBody = await response.text();
-                    console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
                 }
                 logout();
                 return;
@@ -159,7 +156,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     localStorage.setItem('token', data.token);
                 }
                 await fetchUserProfile();
-                setIsLoading(false);
                 return true;
             }
 
@@ -167,6 +163,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error: any) {
             logout(); 
             throw error;
+        } finally {
+            setIsLoading(false);
         }
     };
     

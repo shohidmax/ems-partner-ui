@@ -34,15 +34,27 @@ interface DeviceInfo {
   division?: string | null;
 }
 
-interface DeviceData {
+interface DeviceDataPoint {
+    uid: string;
+    timestamp: string;
+    pssensor?: { cable?: number, mpa?: number, avg_mpa?: number, depth_ft?: number };
+    environment?: { temp?: number, hum?: number };
+    rain?: { count?: number, mm?: number };
+    dateTime?: string;
+    // Legacy flat structure
+    temperature?: number;
+    water_level?: number;
+    rainfall?: number;
+}
+
+interface ProcessedData {
   uid: string;
+  timestamp: string;
   temperature: number | null;
   water_level: number;
   rainfall: number;
-  latitude?: number;
-  longitude?: number;
-  timestamp: string;
 }
+
 
 const ChartTooltipContent = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -120,7 +132,7 @@ export default function DeviceDetailsPage() {
   const { toast } = useToast();
 
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
-  const [deviceHistory, setDeviceHistory] = useState<DeviceData[]>([]);
+  const [deviceHistory, setDeviceHistory] = useState<ProcessedData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -153,35 +165,19 @@ export default function DeviceDetailsPage() {
     setError(null);
     
     try {
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         
-        let url;
-        let historyResponse;
-
-        if (isAdmin) {
-             url = `${API_URL_BASE}/api/device/data-by-range`;
-             const body: any = { uid };
-             if (start) body.start = start;
-             if (end) body.end = end;
-             
-             historyResponse = await fetch(url, { 
-                method: 'POST',
-                headers: { ...headers, 'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
-             });
-
-        } else {
-            const queryParams = new URLSearchParams();
-            if (start) queryParams.append('start', start);
-            if (end) queryParams.append('end', end);
-            url = `${API_URL_BASE}/api/user/device/${uid}/data`;
-            const queryString = queryParams.toString();
-            if(queryString) {
-                url += `?${queryString}`;
-            }
-            historyResponse = await fetch(url, { headers });
-        }
+        let url = `${API_URL_BASE}/api/device/data-by-range`;
+        const body: any = { uid };
+        if (start) body.start = start;
+        if (end) body.end = end;
         
+        const historyResponse = await fetch(url, { 
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(body)
+        });
+
         if (!historyResponse.ok) {
             if (historyResponse.status === 403) {
                  throw new Error('You do not have permission to view this device.');
@@ -189,19 +185,25 @@ export default function DeviceDetailsPage() {
             throw new Error(`Failed to fetch device data. Status: ${historyResponse.status}`);
         }
         
-        const jsonData = await historyResponse.json();
-        const processedData = jsonData.map((d: any) => ({
-            ...d,
-            temperature: (d.temperature === 85 || typeof d.temperature !== 'number') ? null : d.temperature,
-            water_level: (typeof d.water_level !== 'number') ? 0 : d.water_level,
-            rainfall: (typeof d.rainfall !== 'number') ? 0 : d.rainfall,
-            timestamp: d.timestamp && !d.timestamp.startsWith('1970-') ? d.timestamp : null
-        })).filter((d: any) => d.timestamp);
+        const jsonData: DeviceDataPoint[] = await historyResponse.json();
+
+        const processedData = jsonData.map((d): ProcessedData => {
+            let temp = d.environment?.temp ?? d.temperature;
+            let water = d.pssensor?.depth_ft ?? d.water_level;
+            let rain = d.rain?.mm ?? d.rainfall;
+
+            return {
+                uid: d.uid,
+                timestamp: d.timestamp,
+                temperature: (temp === 85 || typeof temp !== 'number') ? null : temp,
+                water_level: (typeof water !== 'number') ? 0 : water,
+                rainfall: (typeof rain !== 'number') ? 0 : rain,
+            }
+        }).filter((d: any) => d.timestamp && !d.timestamp.startsWith('1970-'));
         
         setDeviceHistory(processedData);
 
     } catch (e: any) {
-        console.error('Failed to fetch data:', e);
         setError(e.message || 'Failed to fetch device data. The server might be offline. Please try again later.');
     } finally {
         setLoading(false);
@@ -212,7 +214,7 @@ export default function DeviceDetailsPage() {
     if (!token || !uid) return;
      try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        const infoUrl = isAdmin ? `${API_URL_BASE}/api/admin/devices` : `${API_URL_BASE}/api/user/devices`;
+        const infoUrl = isAdmin ? `${API_URL_BASE}/api/device/list` : `${API_URL_BASE}/api/user/devices`;
         const infoResponse = await fetch(infoUrl, { headers });
 
         if (infoResponse.ok) {
@@ -225,12 +227,7 @@ export default function DeviceDetailsPage() {
             }
 
             if (!currentDevice) {
-                if (isAdmin) {
-                    setError(`Device with UID ${uid} not found.`);
-                } else {
-                    setDeviceInfo({ uid, name: 'Unclaimed Device', location: null, status: 'unknown', lastSeen: null});
-                    setError("Could not find this device in your list.");
-                }
+                setError(`Device with UID ${uid} not found.`);
             } else {
                  setDeviceInfo(currentDevice);
                  setEditingName(currentDevice?.name || '');
@@ -241,11 +238,9 @@ export default function DeviceDetailsPage() {
             }
 
         } else {
-            console.warn('Could not fetch device info');
              setError("Could not verify device ownership.");
         }
     } catch(e) {
-        console.warn('Could not fetch device info', e);
         setError("An error occurred while fetching device details.");
     }
   }, [token, uid, isAdmin]);
@@ -273,11 +268,8 @@ export default function DeviceDetailsPage() {
     if (deviceInfo?.latitude && deviceInfo?.longitude) {
       return { lat: deviceInfo.latitude, lng: deviceInfo.longitude };
     }
-    if (latestData?.latitude && latestData?.longitude) {
-      return { lat: latestData.latitude, lng: latestData.longitude };
-    }
     return null;
-  }, [deviceInfo, latestData]);
+  }, [deviceInfo]);
 
   const pieChartData = useMemo(() => {
     if (deviceHistory.length === 0) return [];
@@ -336,7 +328,7 @@ export default function DeviceDetailsPage() {
   };
 
   const handleSave = async () => {
-    if (!token) return;
+    if (!token || !isAdmin) return;
     setIsSaving(true);
     try {
       const response = await fetch(`${API_URL_BASE}/api/device/${uid}`, {
@@ -555,7 +547,7 @@ export default function DeviceDetailsPage() {
                 <DialogClose asChild>
                     <Button variant="ghost">Cancel</Button>
                 </DialogClose>
-                <Button onClick={handleSave} disabled={isSaving}>
+                <Button onClick={handleSave} disabled={isSaving || !isAdmin}>
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes
                 </Button>
@@ -776,11 +768,3 @@ export default function DeviceDetailsPage() {
         <Button onClick={downloadPDF} disabled={isPdfLoading || deviceHistory.length === 0}>
           {isPdfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {isPdfLoading ? 'Generating Report...' : 'Download PDF Report'}
-        </Button>
-      </div>
-
-    </div>
-  );
-}
-
-    

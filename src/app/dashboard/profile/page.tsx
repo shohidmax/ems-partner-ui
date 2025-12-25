@@ -1,4 +1,3 @@
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile-form";
@@ -14,8 +13,14 @@ import { AddDeviceDialog } from "@/components/add-device-dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+interface UserDevice {
+    uid: string;
+    name: string | null;
+}
+
 export default function ProfilePage() {
   const { user, isAdmin, isLoading, fetchUserProfile } = useUser();
+  const [userDevices, setUserDevices] = useState<UserDevice[]>([]);
   const { toast } = useToast();
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
   const router = useRouter();
@@ -27,8 +32,24 @@ export default function ProfilePage() {
   }, [isLoading, isAdmin, router]);
 
   useEffect(() => {
-    if (user) {
-      console.log('User Profile JSON:', JSON.stringify(user, null, 2));
+    const fetchUserDevices = async () => {
+        const token = localStorage.getItem('token');
+        if (user && token) {
+            try {
+                const response = await fetch('https://emspartner.espserver.site/api/user/devices', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if(response.ok) {
+                    const devices = await response.json();
+                    setUserDevices(devices);
+                }
+            } catch (error) {
+                console.error("Failed to fetch user devices");
+            }
+        }
+    };
+    if(user) {
+        fetchUserDevices();
     }
   }, [user]);
 
@@ -88,19 +109,22 @@ export default function ProfilePage() {
                         </Button>
                     </CardHeader>
                     <CardContent>
-                        {isLoading && (!user || !user.devices) ? (
+                        {isLoading && userDevices.length === 0 ? (
                             <div className="space-y-3">
                                 <Skeleton className="h-10 w-full" />
                                 <Skeleton className="h-10 w-full" />
                             </div>
-                        ) : user?.devices && user.devices.length > 0 ? (
+                        ) : userDevices && userDevices.length > 0 ? (
                             <List>
-                                {user.devices.map(uid => (
-                                    <Link key={uid} href={`/dashboard/device/${uid}`} className="block">
+                                {userDevices.map(device => (
+                                    <Link key={device.uid} href={`/dashboard/device/${device.uid}`} className="block">
                                         <ListItem className="group cursor-pointer transition-all hover:bg-muted">
-                                            <span className="font-mono text-sm flex-1">{uid}</span>
+                                            <div>
+                                                <p className="font-medium">{device.name || 'Unnamed Device'}</p>
+                                                <p className="font-mono text-sm text-muted-foreground">{device.uid}</p>
+                                            </div>
                                             <div className="flex items-center">
-                                                <Button size="sm" variant="ghost" onClick={(e) => handleCopy(e, uid)}>
+                                                <Button size="sm" variant="ghost" onClick={(e) => handleCopy(e, device.uid)}>
                                                     <Copy className="h-4 w-4" />
                                                 </Button>
                                                 <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />

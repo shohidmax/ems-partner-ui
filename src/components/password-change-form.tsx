@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -64,7 +63,6 @@ export function PasswordChangeForm() {
         });
         form.reset();
       } catch (error: any) {
-        console.error('Password update error:', error);
         toast({
           title: 'Error updating password',
           description: error.message,

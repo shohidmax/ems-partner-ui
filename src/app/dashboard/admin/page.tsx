@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert';
 import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download, User } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
@@ -87,7 +87,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalDevices || 0}</div>
-                <p className="text-xs text-muted-foreground">{stats.onlineDevices || 0} Online / {stats.offlineDevices || 0} Offline</p>
+                <p className="text-xs text-muted-foreground">{stats.onlineDevices || 0} Online</p>
               </CardContent>
             </Card>
             <Card>
@@ -102,12 +102,12 @@ export default function AdminDashboardPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Data Points</CardTitle>
+                <CardTitle className="text-sm font-medium">System Status</CardTitle>
                 <Cloud className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{(stats.totalDataPoints || 0).toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">+{stats.dataToday?.toLocaleString() || 0} today</p>
+                <div className="text-2xl font-bold text-green-500">Online</div>
+                <p className="text-xs text-muted-foreground">All systems operational</p>
               </CardContent>
             </Card>
             <Card>
@@ -171,6 +171,3 @@ export default function AdminDashboardPage() {
                 </CardContent>
             </Card>
         </div>
-    </div>
-  );
-}
