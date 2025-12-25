@@ -69,11 +69,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/user/profile`, {
+            const response = await fetch(`${API_URL}/api/protected/profile`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
              if (!response.ok) {
-                const errorBody = await response.text();
                 logout();
                 return;
             }
