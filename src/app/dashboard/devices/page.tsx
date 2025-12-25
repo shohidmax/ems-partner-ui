@@ -17,10 +17,10 @@ import { AddDeviceDialog } from '@/components/add-device-dialog';
 import { Badge } from '@/components/ui/badge';
 
 
-const API_URL_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
     ? 'http://localhost:3002'
     : 'https://emspartner.espserver.site';
-const API_URL = `${API_URL_BASE}/api/protected/devices`;
+const API_URL = `${API_BASE_URL}/api/protected/devices`;
 
 
 interface DeviceInfo {
