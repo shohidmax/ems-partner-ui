@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download, User } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
@@ -171,3 +171,6 @@ export default function AdminDashboardPage() {
                 </CardContent>
             </Card>
         </div>
+    </div>
+  );
+}
