@@ -17,9 +17,11 @@ import { AddDeviceDialog } from '@/components/add-device-dialog';
 import { Badge } from '@/components/ui/badge';
 
 
-const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api/protected/devices'
-    : 'https://emspartner.espserver.site/api/protected/devices';
+const API_URL_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
+const API_URL = `${API_URL_BASE}/api/protected/devices`;
+
 
 interface DeviceInfo {
   uid: string;
@@ -311,10 +313,8 @@ export default function DeviceListPage() {
                         <p className="text-xs text-muted-foreground">
                             Last seen: {device.lastSeen ? formatToBDTime(device.lastSeen) : 'Never'}
                         </p>
-                         <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                            <Link href={`/dashboard/device/${device.uid}`}>
-                                <ArrowRight className="h-4 w-4" />
-                            </Link>
+                         <Button variant="outline" size="icon" className="h-8 w-8">
+                           <ArrowRight className="h-4 w-4" />
                         </Button>
                      </div>
                   </Card>

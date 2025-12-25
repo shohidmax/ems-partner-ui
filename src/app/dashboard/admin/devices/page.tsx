@@ -17,8 +17,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Label } from '@/components/ui/label';
 
 const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api'
-    : 'https://emspartner.espserver.site/api';
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
+const API_URL = `${API_BASE_URL}/api`;
 
 interface DeviceOwner {
     _id: string;
@@ -56,7 +57,7 @@ export default function AdminDeviceManagerPage() {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/devices`, {
+      const response = await fetch(`${API_URL}/admin/devices`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
@@ -108,7 +109,7 @@ export default function AdminDeviceManagerPage() {
       if (latitude !== undefined) body.latitude = latitude;
       if (longitude !== undefined) body.longitude = longitude;
 
-      const response = await fetch(`${API_BASE_URL}/admin/device/${uid}`, {
+      const response = await fetch(`${API_URL}/admin/device/${uid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -293,10 +294,8 @@ export default function AdminDeviceManagerPage() {
                             <p className="text-xs text-muted-foreground">
                                 Last seen: {device.lastSeen ? formatToBDTime(device.lastSeen) : 'Never'}
                             </p>
-                             <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                                <Link href={`/dashboard/device/${device.uid}`}>
-                                    <ArrowRight className="h-4 w-4" />
-                                </Link>
+                             <Button variant="outline" size="icon" className="h-8 w-8">
+                                <ArrowRight className="h-4 w-4" />
                             </Button>
                          </div>
                     </Card>
