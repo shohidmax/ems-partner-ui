@@ -167,7 +167,7 @@ export default function DeviceDetailsPage() {
     try {
         const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         
-        let url = `${API_URL_BASE}/api/device/data-by-range`;
+        let url = `${API_URL_BASE}/api/public/device/data-by-range`;
         const body: any = { uid };
         if (start) body.start = start;
         if (end) body.end = end;
@@ -214,18 +214,13 @@ export default function DeviceDetailsPage() {
     if (!token || !uid) return;
      try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        const infoUrl = isAdmin ? `${API_URL_BASE}/api/device/list` : `${API_URL_BASE}/api/user/devices`;
+        const infoUrl = isAdmin ? `${API_URL_BASE}/api/admin/devices` : `${API_URL_BASE}/api/protected/devices`;
         const infoResponse = await fetch(infoUrl, { headers });
 
         if (infoResponse.ok) {
             const devices: any[] = await infoResponse.json();
             const currentDevice = devices.find(d => d.uid === uid);
             
-            if(!currentDevice && !isAdmin) {
-                setError("Access Denied: You do not own this device.");
-                return;
-            }
-
             if (!currentDevice) {
                 setError(`Device with UID ${uid} not found.`);
             } else {
@@ -236,7 +231,6 @@ export default function DeviceDetailsPage() {
                  setEditingLongitude(currentDevice?.longitude);
                  setEditingDivision(currentDevice?.division);
             }
-
         } else {
              setError("Could not verify device ownership.");
         }
@@ -331,7 +325,7 @@ export default function DeviceDetailsPage() {
     if (!token || !isAdmin) return;
     setIsSaving(true);
     try {
-      const response = await fetch(`${API_URL_BASE}/api/device/${uid}`, {
+      const response = await fetch(`${API_URL_BASE}/api/admin/device/${uid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -770,6 +764,4 @@ export default function DeviceDetailsPage() {
           {isPdfLoading ? 'Generating Report...' : 'Download PDF Report'}
         </Button>
       </div>
-    </div>
-  );
-}
+    

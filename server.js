@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -720,7 +719,7 @@ adminRouter.get('/backup/download/:jobId', (req, res) => {
 
 // --- রাউটার মাউন্টিং ---
 app.use('/api', iotRouter);
-app.use('/api', publicRouter); 
+app.use('/api/public', publicRouter); 
 app.use('/api/user', authRouter);
 app.use('/api/protected', userRouter);
 app.use('/api/admin', adminRouter);
@@ -765,3 +764,5 @@ async function startServer() {
 
 // স্টার্ট!
 startServer();
+
+update this server
