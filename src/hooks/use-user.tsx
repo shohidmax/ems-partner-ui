@@ -54,7 +54,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
-        setIsLoading(false); 
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         if (!isAuthPage && pathname !== '/') {
             router.replace('/login');
@@ -69,13 +68,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/user/profile`, {
+            const response = await fetch(`${API_URL}/api/protected/profile`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
              if (!response.ok) {
                  if (response.status === 401 || response.status === 403) {
+                     console.error('Profile fetch failed: Unauthorized or Forbidden');
                 } else {
                     const errorBody = await response.text();
+                    console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
                 }
                 logout();
                 return;
@@ -86,6 +87,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
             setToken(currentToken);
 
         } catch (error) {
+             console.error('Error fetching user profile:', error);
              logout();
         }
     }, [logout]);
@@ -93,27 +95,20 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const initializeAuth = useCallback(async () => {
         setIsLoading(true);
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-        const finalizer = () => setIsLoading(false);
         
         if (tokenFromStorage) {
             try {
                 const decoded = jwtDecode<DecodedToken>(tokenFromStorage);
                 if (decoded.exp * 1000 < Date.now()) {
                     logout();
-                    finalizer();
                 } else {
                     await fetchUserProfile();
-                    finalizer();
                 }
             } catch (error) {
                 logout();
-                finalizer();
             }
-        } else {
-            setIsLoading(false);
         }
-
+        setIsLoading(false);
     }, [fetchUserProfile, logout]);
 
 
