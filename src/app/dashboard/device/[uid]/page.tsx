@@ -130,8 +130,8 @@ const renderActiveShape = (props: any) => {
 
 export default function DeviceDetailsPage() {
   const params = useParams();
-  const paramUid = params?.uid;
-  const uid = paramUid ? decodeURIComponent(Array.isArray(paramUid) ? paramUid[0] : paramUid) : '';
+  const uidFromParams = params?.uid;
+  const uid = uidFromParams ? decodeURIComponent(Array.isArray(uidFromParams) ? uidFromParams[0] : uidFromParams) : '';
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
 
@@ -412,6 +412,10 @@ export default function DeviceDetailsPage() {
     if (deviceInfo?.location) {
         currentY += 6;
         doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY + 5);
+    }
+    if (deviceInfo?.division) {
+        currentY += 6;
+        doc.text(`Division: ${deviceInfo.division}`, pageMargin, currentY + 5);
     }
     currentY += 25;
 
@@ -806,7 +810,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-    
-
-    
