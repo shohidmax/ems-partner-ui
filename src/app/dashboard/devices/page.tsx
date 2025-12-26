@@ -237,7 +237,6 @@ export default function DeviceListPage() {
           {loading && devices.length === 0 ? renderSkeletons() : 
             sortedDevices.length > 0 ? (
               sortedDevices.map((device) => {
-                const latestData = device.data;
                 const isPinned = pinnedDevices.has(device.uid);
                 const hasLocation = device.latitude && device.longitude;
                 return (
@@ -299,19 +298,19 @@ export default function DeviceListPage() {
                        <div className="flex justify-between items-center text-base">
                         <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground"><Thermometer className="h-4 w-4 text-amber-500"/>Temperature</div>
                         <span className="font-bold text-amber-500">
-                          {latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}
+                          {device.data?.temperature !== null && device.data?.temperature !== undefined ? `${device.data.temperature.toFixed(1)} °C` : 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-base">
                         <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground"><Droplets className="h-4 w-4 text-sky-500"/>Water Level</div>
                         <span className="font-bold text-sky-500">
-                          {latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}
+                          {device.data?.water_level !== undefined ? `${device.data.water_level.toFixed(2)} m` : 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-base">
                          <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground"><CloudRain className="h-4 w-4 text-emerald-500"/>Rainfall</div>
                         <span className="font-bold text-emerald-500">
-                          {latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}
+                          {device.data?.rainfall !== undefined ? `${device.data.rainfall.toFixed(2)} mm` : 'N/A'}
                         </span>
                       </div>
                     </CardContent>
@@ -336,3 +335,5 @@ export default function DeviceListPage() {
     </div>
   );
 }
+
+    
