@@ -248,11 +248,17 @@ export default function DeviceListPage() {
                             {hasLocation && (
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <a href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary">
-                                                <MapPin className="h-4 w-4" />
-                                            </Button>
-                                        </a>
+                                        <Button
+                                            size="icon" variant="ghost"
+                                            className="h-7 w-7 rounded-full text-muted-foreground hover:text-primary"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                window.open(`https://www.google.com/maps?q=${device.latitude},${device.longitude}`, '_blank');
+                                            }}
+                                        >
+                                            <MapPin className="h-4 w-4" />
+                                        </Button>
                                     </TooltipTrigger>
                                     <TooltipContent><p>View on Map</p></TooltipContent>
                                 </Tooltip>

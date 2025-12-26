@@ -260,7 +260,16 @@ export default function AdminDeviceManagerPage() {
                                     <MapPin className="h-4 w-4" />
                                     <span className="truncate">{device.location}</span>
                                      {device.latitude && device.longitude && (
-                                        <a href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-primary hover:underline text-xs">(Map)</a>
+                                        <Button
+                                            variant="link"
+                                            className="p-0 h-auto text-xs"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(`https://www.google.com/maps?q=${device.latitude},${device.longitude}`, '_blank');
+                                            }}
+                                        >
+                                            (Map)
+                                        </Button>
                                      )}
                                 </div>
                             )}
