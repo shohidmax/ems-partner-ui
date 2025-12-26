@@ -9,8 +9,10 @@ export function formatToBDTime(dateString: string) {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
+    // Add 6 hours to the date
+    date.setHours(date.getHours() + 6);
     return date.toLocaleString('en-GB', {
-      timeZone: 'Asia/Dhaka',
+      timeZone: 'UTC', // Use UTC to avoid double offset
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -24,5 +26,3 @@ export function formatToBDTime(dateString: string) {
     return 'Invalid Date';
   }
 }
-
-    
