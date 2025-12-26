@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
@@ -71,7 +72,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/protected/profile`, {
+            const response = await fetch(`${API_URL}/api/user/profile`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
              if (!response.ok) {
@@ -136,7 +137,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/user/login`, {
+            const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),

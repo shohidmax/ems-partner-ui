@@ -14,8 +14,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { formatToBDTime } from '@/lib/utils';
 
 const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api'
-    : 'https://emspartner.espserver.site/api';
+    ? 'http://localhost:3002'
+    : 'https://emspartner.espserver.site';
 
 interface UserData {
   _id: string;
@@ -38,7 +38,7 @@ export default function AdminUserManagerPage() {
     try {
       if (!token) throw new Error('No auth token found.');
 
-      const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -81,7 +81,7 @@ export default function AdminUserManagerPage() {
     const endpoint = newIsAdmin ? 'make-admin' : 'remove-admin';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/user/${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/user/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

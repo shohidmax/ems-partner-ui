@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile-form";
@@ -23,11 +24,27 @@ interface UserDevice {
 }
 
 export default function ProfilePage() {
-  const { user, isAdmin, isLoading, fetchUserProfile } = useUser();
+  const { user, isAdmin, isLoading, fetchUserProfile, token } = useUser();
   const [userDevices, setUserDevices] = useState<UserDevice[]>([]);
   const { toast } = useToast();
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
   const router = useRouter();
+
+  const fetchUserDevices = async () => {
+    if (user && token) {
+        try {
+            const response = await fetch(`${API_URL_BASE}/api/user/devices`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if(response.ok) {
+                const devices = await response.json();
+                setUserDevices(devices);
+            }
+        } catch (error) {
+            console.error("Failed to fetch user devices");
+        }
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && isAdmin) {
@@ -36,26 +53,10 @@ export default function ProfilePage() {
   }, [isLoading, isAdmin, router]);
 
   useEffect(() => {
-    const fetchUserDevices = async () => {
-        const token = localStorage.getItem('token');
-        if (user && token) {
-            try {
-                const response = await fetch(`${API_URL_BASE}/api/protected/devices`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if(response.ok) {
-                    const devices = await response.json();
-                    setUserDevices(devices);
-                }
-            } catch (error) {
-                console.error("Failed to fetch user devices");
-            }
-        }
-    };
-    if(user) {
+    if(user && token) {
         fetchUserDevices();
     }
-  }, [user]);
+  }, [user, token]);
 
   const handleCopy = (e: React.MouseEvent, uid: string) => {
     e.stopPropagation();
@@ -69,6 +70,7 @@ export default function ProfilePage() {
 
   const onDeviceAdded = () => {
       fetchUserProfile();
+      fetchUserDevices();
   };
 
   if (isLoading || isAdmin) {

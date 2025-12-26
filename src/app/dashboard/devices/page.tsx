@@ -20,7 +20,6 @@ import { Badge } from '@/components/ui/badge';
 const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
     ? 'http://localhost:3002'
     : 'https://emspartner.espserver.site';
-const API_URL = `${API_BASE_URL}/api/protected/devices`;
 
 
 interface DeviceInfo {
@@ -102,7 +101,7 @@ export default function DeviceListPage() {
     }
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
-      const response = await fetch(API_URL, { headers, cache: 'no-cache' });
+      const response = await fetch(`${API_BASE_URL}/api/user/devices`, { headers, cache: 'no-cache' });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch device list. Status: ${response.status}`);
