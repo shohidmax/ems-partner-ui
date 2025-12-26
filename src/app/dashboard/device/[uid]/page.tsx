@@ -38,12 +38,11 @@ interface DeviceInfo {
 
 interface DeviceDataPoint {
     uid: string;
-    timestamp: string; // Now a string like "26-12-2025 07:38:04 AM"
+    timestamp: string; 
     pssensor?: { cable?: number, mpa?: number, avg_mpa?: number, depth_ft?: number };
     environment?: { temp?: number, hum?: number };
     rain?: { count?: number, mm?: number };
-    dateTime?: string; // This will be the same as timestamp
-    // Legacy flat structure
+    dateTime?: string; 
     temperature?: number;
     water_level?: number;
     rainfall?: number;
@@ -51,7 +50,7 @@ interface DeviceDataPoint {
 
 interface ProcessedData {
   uid: string;
-  timestamp: string; // The original dateTime string
+  timestamp: string; 
   temperature: number | null;
   water_level: number;
   rainfall: number;
@@ -162,6 +161,19 @@ export default function DeviceDetailsPage() {
     const localISOTime = new Date(date.getTime() - tzoffset).toISOString().slice(0, 16);
     return localISOTime;
   };
+  
+    const setDefaultTimeRange = useCallback(() => {
+        const now = new Date();
+        const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+        
+        const endStr = toLocalISOString(now);
+        const startStr = toLocalISOString(oneHourAgo);
+
+        setStartDate(startStr);
+        setEndDate(endStr);
+        setAppliedStartDate(startStr);
+        setAppliedEndDate(endStr);
+    }, []);
 
   const fetchDeviceHistory = useCallback(async (start?: string, end?: string) => {
     if (!token || !uid) return;
@@ -192,7 +204,6 @@ export default function DeviceDetailsPage() {
         const jsonData: DeviceDataPoint[] = await historyResponse.json();
 
         const processedData = jsonData.map((d): ProcessedData | null => {
-            // The primary source of time is now dateTime or timestamp (which is the same string)
             const timeString = d.dateTime || d.timestamp;
             if (!timeString) return null;
 
@@ -203,7 +214,7 @@ export default function DeviceDetailsPage() {
             
             return {
                 uid: d.uid,
-                timestamp: timeString, // Use the string directly
+                timestamp: timeString,
                 temperature: (temp === 85 || typeof temp !== 'number') ? null : temp,
                 water_level: (typeof water !== 'number') ? 0 : water,
                 rainfall: (typeof rain !== 'number') ? 0 : rain,
@@ -251,6 +262,10 @@ export default function DeviceDetailsPage() {
     }
 }, [token, uid, isAdmin]);
 
+    useEffect(() => {
+        setDefaultTimeRange();
+    }, [setDefaultTimeRange]);
+
   useEffect(() => {
     if (token && uid) {
       const fetchData = () => {
@@ -258,8 +273,8 @@ export default function DeviceDetailsPage() {
         fetchDeviceHistory(appliedStartDate, appliedEndDate);
       };
 
-      fetchData(); // Initial fetch
-      const interval = setInterval(fetchData, 30000); // Poll every 30 seconds
+      fetchData(); 
+      const interval = setInterval(fetchData, 30000); 
 
       return () => clearInterval(interval);
     }
@@ -267,7 +282,6 @@ export default function DeviceDetailsPage() {
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
-    // Since we sort by receivedAt on server, the last item is the latest
     return deviceHistory[deviceHistory.length - 1];
   }, [deviceHistory]);
   
@@ -316,7 +330,6 @@ export default function DeviceDetailsPage() {
   const applyFilters = () => {
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
-    fetchDeviceHistory(startDate, endDate);
   };
 
     const handleQuickFilter = (minutes: number) => {
@@ -330,7 +343,6 @@ export default function DeviceDetailsPage() {
         setEndDate(endStr);
         setAppliedStartDate(startStr);
         setAppliedEndDate(endStr);
-        fetchDeviceHistory(startStr, endStr);
     };
 
   const resetFilters = () => {
@@ -338,7 +350,6 @@ export default function DeviceDetailsPage() {
     setEndDate('');
     setAppliedStartDate('');
     setAppliedEndDate('');
-    fetchDeviceHistory();
   };
 
   const handleSave = async () => {
@@ -794,7 +805,5 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-    
 
     
