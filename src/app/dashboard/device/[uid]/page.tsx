@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
-import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin } from 'lucide-react';
+import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin, Wind } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
@@ -55,6 +55,7 @@ interface ProcessedData {
   temperature: number | null;
   water_level: number;
   rainfall: number;
+  humidity: number | null;
 }
 
 
@@ -67,7 +68,7 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
           <p key={pld.dataKey || pld.name} style={{ color: pld.fill || pld.color }} className="text-sm">
             {pld.name.includes('(') ? `${pld.name}: ` : `${pld.name}: `}
             {pld.value.toFixed(2)}
-            {pld.payload.unit}
+            {pld.payload.unit || '%'}
           </p>
         ))}
       </div>
@@ -193,6 +194,7 @@ export default function DeviceDetailsPage() {
             const temp = d.environment?.temp ?? d.temperature;
             const water = d.pssensor?.depth_ft ?? d.water_level;
             const rain = d.rain?.mm ?? d.rainfall;
+            const humidity = d.environment?.hum ?? null;
             
             const timestampValue = typeof d.timestamp === 'object' && d.timestamp !== null && '$date' in d.timestamp ? d.timestamp.$date : d.timestamp as string;
 
@@ -202,6 +204,7 @@ export default function DeviceDetailsPage() {
                 temperature: (temp === 85 || typeof temp !== 'number') ? null : temp,
                 water_level: (typeof water !== 'number') ? 0 : water,
                 rainfall: (typeof rain !== 'number') ? 0 : rain,
+                humidity: (typeof humidity !== 'number') ? null : humidity,
             }
         }).filter((d: any) => d.timestamp && !d.timestamp.startsWith('1970-'));
         
@@ -273,22 +276,29 @@ export default function DeviceDetailsPage() {
 
   const pieChartData = useMemo(() => {
     if (deviceHistory.length === 0) return [];
+    
     const validTempHistory = deviceHistory.filter(d => d.temperature !== null);
+    const validHumidityHistory = deviceHistory.filter(d => d.humidity !== null);
+
     const tempSum = validTempHistory.reduce((sum, d) => sum + (d.temperature ?? 0), 0);
+    const humiditySum = validHumidityHistory.reduce((sum, d) => sum + (d.humidity ?? 0), 0);
     const waterSum = deviceHistory.reduce((sum, d) => sum + (d.water_level ?? 0), 0);
     const rainSum = deviceHistory.reduce((sum, d) => sum + (d.rainfall ?? 0), 0);
+
     const avgTemp = validTempHistory.length > 0 ? tempSum / validTempHistory.length : 0;
+    const avgHumidity = validHumidityHistory.length > 0 ? humiditySum / validHumidityHistory.length : 0;
     const avgWater = deviceHistory.length > 0 ? waterSum / deviceHistory.length : 0;
     const avgRain = deviceHistory.length > 0 ? rainSum / deviceHistory.length : 0;
 
     return [
       { name: `Avg Temp`, value: Math.max(0.01, avgTemp), unit: '°C' },
+      { name: `Avg Humidity`, value: Math.max(0.01, avgHumidity), unit: '%' },
       { name: `Avg Water`, value: Math.max(0.01, avgWater), unit: 'm' },
       { name: `Avg Rain`, value: Math.max(0.01, avgRain), unit: 'mm' },
     ];
   }, [deviceHistory]);
   
-  const PIE_COLORS = ['#fbbf24', '#38bdf8', '#34d399'];
+  const PIE_COLORS = ['#fbbf24', '#a855f7', '#38bdf8', '#34d399'];
 
   
   useEffect(() => {
@@ -396,7 +406,8 @@ export default function DeviceDetailsPage() {
 
     const summaryBody: (string | number)[][] = [
         ["Last Updated:", latestData ? formatToBDTime(latestData.timestamp) : 'N/A'],
-        ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N_A'],
+        ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
+        ["Latest Humidity:", latestData?.humidity !== null && latestData?.humidity !== undefined ? `${latestData?.humidity?.toFixed(1)} %` : 'N/A'],
         ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} m` : 'N/A'],
         ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
         ["Filter Start:", appliedStartDate ? formatToBDTime(appliedStartDate) : 'All'],
@@ -462,10 +473,11 @@ export default function DeviceDetailsPage() {
     currentY += 8;
 
     (doc as any).autoTable({
-        head: [['Timestamp', 'Temp (°C)', 'Water (m)', 'Rain (mm)']],
+        head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (m)', 'Rain (mm)']],
         body: deviceHistory.map(d => [
             formatToBDTime(d.timestamp),
             d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
+            d.humidity !== null ? d.humidity.toFixed(1) : 'N/A',
             d.water_level.toFixed(2),
             d.rainfall.toFixed(2)
         ]),
@@ -605,7 +617,7 @@ export default function DeviceDetailsPage() {
           <CardHeader>
               <CardTitle>Device Last Data</CardTitle>
           </CardHeader>
-        <CardContent className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+        <CardContent className="p-4 grid grid-cols-2 lg:grid-cols-5 gap-4 text-center">
         <div>
             <p className="text-sm text-muted-foreground">Last Updated</p>
             {latestData ? (
@@ -615,6 +627,7 @@ export default function DeviceDetailsPage() {
             ) : <p className="font-semibold text-lg">'N/A'</p>}
         </div>
           <div><p className="text-sm text-muted-foreground">Temperature</p><p className="font-bold text-2xl text-amber-500">{latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Humidity</p><p className="font-bold text-2xl text-purple-500">{latestData?.humidity !== null && latestData?.humidity !== undefined ? `${latestData.humidity.toFixed(1)} %` : 'N/A'}</p></div>
           <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}</p></div>
           <div><p className="text-sm text-muted-foreground">Daily Rainfall</p><p className="font-bold text-2xl text-emerald-500">{latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}</p></div>
         </CardContent>
@@ -667,11 +680,12 @@ export default function DeviceDetailsPage() {
                 <LineChart data={deviceHistory.slice().reverse()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[1] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C', angle: -90, position: 'insideLeft' }} />
+                  <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C / %', angle: -90, position: 'insideLeft' }} />
                   <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'm / mm', angle: -90, position: 'insideRight' }}/>
                   <Tooltip content={<ChartTooltipContent />} />
                   <Legend />
                   <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temperature" stroke="#fbbf24" dot={false} connectNulls />
+                  <Line yAxisId="left" type="monotone" dataKey="humidity" name="Humidity" stroke="#a855f7" dot={false} connectNulls />
                   <Line yAxisId="right" type="monotone" dataKey="water_level" name="Water Level" stroke="#38bdf8" dot={false} />
                   <Line yAxisId="right" type="monotone" dataKey="rainfall" name="Rainfall" stroke="#34d399" dot={false} />
                 </LineChart>
@@ -738,6 +752,7 @@ export default function DeviceDetailsPage() {
                 <TableRow>
                   <TableHead>Timestamp</TableHead>
                   <TableHead className="text-center">Temp (°C)</TableHead>
+                  <TableHead className="text-center">Humidity (%)</TableHead>
                   <TableHead className="text-center">Water (m)</TableHead>
                   <TableHead className="text-center">Rain (mm)</TableHead>
                 </TableRow>
@@ -750,13 +765,14 @@ export default function DeviceDetailsPage() {
                         {formatToBDTime(d.timestamp)}
                       </TableCell>
                       <TableCell className="text-center font-semibold text-amber-500">{d.temperature !== null ? d.temperature.toFixed(1) : 'N/A'}</TableCell>
+                      <TableCell className="text-center font-semibold text-purple-500">{d.humidity !== null ? d.humidity.toFixed(1) : 'N/A'}</TableCell>
                       <TableCell className="text-center font-semibold text-sky-500">{d.water_level.toFixed(2)}</TableCell>
                       <TableCell className="text-center font-semibold text-emerald-500">{d.rainfall.toFixed(2)}</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">No data for the selected filter.</TableCell>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">No data for the selected filter.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -774,5 +790,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-    

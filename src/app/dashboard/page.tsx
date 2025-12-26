@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain } from 'lucide-react';
+import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain, Wind } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { formatToBDTime } from '@/lib/utils';
 
@@ -24,6 +24,7 @@ interface DeviceInfo {
     temperature: number | null;
     water_level: number;
     rainfall: number;
+    humidity: number | null;
   }
 }
 
@@ -86,16 +87,20 @@ export default function DashboardPage() {
   
   const summaryStats = () => {
     if (onlineDevices.length === 0) {
-      return { avgTemp: null, avgWater: 0, avgRain: 0 };
+      return { avgTemp: null, avgWater: 0, avgRain: 0, avgHumidity: null };
     }
     const validTemps = onlineDevices.map(d => d.data?.temperature).filter(t => t !== null && t !== undefined) as number[];
+    const validHumidity = onlineDevices.map(d => d.data?.humidity).filter(h => h !== null && h !== undefined) as number[];
+    
     const avgTemp = validTemps.length > 0 ? validTemps.reduce((a, b) => a + b, 0) / validTemps.length : null;
+    const avgHumidity = validHumidity.length > 0 ? validHumidity.reduce((a, b) => a + b, 0) / validHumidity.length : null;
     const avgWater = onlineDevices.reduce((a, b) => a + (b.data?.water_level || 0), 0) / onlineDevices.length;
     const avgRain = onlineDevices.reduce((a, b) => a + (b.data?.rainfall || 0), 0) / onlineDevices.length;
-    return { avgTemp, avgWater, avgRain };
+    
+    return { avgTemp, avgWater, avgRain, avgHumidity };
   }
 
-  const { avgTemp, avgWater, avgRain } = summaryStats();
+  const { avgTemp, avgWater, avgRain, avgHumidity } = summaryStats();
 
   
   const renderSkeletons = () => (
@@ -158,6 +163,16 @@ export default function DashboardPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Avg. Humidity</CardTitle>
+                        <Wind className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-cyan-500">{avgHumidity !== null ? `${avgHumidity.toFixed(1)}%` : 'N/A'}</div>
+                        <p className="text-xs text-muted-foreground">Across your online devices</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Avg. Water Level</CardTitle>
                         <Droplets className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
@@ -174,16 +189,6 @@ export default function DashboardPage() {
                     <CardContent>
                         <div className="text-2xl font-bold text-emerald-500">{avgRain.toFixed(2)} mm</div>
                         <p className="text-xs text-muted-foreground">Across your online devices</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Your Devices</CardTitle>
-                        <List className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{devices.length}</div>
-                        <Link href="/dashboard/devices" className="text-xs text-primary hover:underline">View All Devices</Link>
                     </CardContent>
                 </Card>
             </>
@@ -239,5 +244,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
