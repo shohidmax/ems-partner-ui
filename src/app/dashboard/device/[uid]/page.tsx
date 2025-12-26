@@ -190,9 +190,10 @@ export default function DeviceDetailsPage() {
         const jsonData: DeviceDataPoint[] = await historyResponse.json();
 
         const processedData = jsonData.map((d): ProcessedData => {
-            let temp = d.environment?.temp ?? d.temperature;
-            let water = d.pssensor?.depth_ft ?? d.water_level;
-            let rain = d.rain?.mm ?? d.rainfall;
+            // Prefer new nested structure, fall back to old flat structure
+            const temp = d.environment?.temp ?? d.temperature;
+            const water = d.pssensor?.depth_ft ?? d.water_level;
+            const rain = d.rain?.mm ?? d.rainfall;
             
             const timestampValue = typeof d.timestamp === 'object' && d.timestamp !== null && '$date' in d.timestamp ? d.timestamp.$date : d.timestamp as string;
 
