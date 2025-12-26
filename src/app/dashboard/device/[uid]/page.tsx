@@ -221,7 +221,7 @@ export default function DeviceDetailsPage() {
     if (!token || !uid) return;
     try {
         const headers = { 'Authorization': `Bearer ${token}` };
-        const infoUrl = isAdmin ? `${API_URL_BASE}/api/admin/devices` : `${API_URL_BASE}/api/protected/devices`;
+        const infoUrl = isAdmin ? `${API_URL_BASE}/api/admin/devices` : `${API_URL_BASE}/api/user/devices`;
         const infoResponse = await fetch(infoUrl, { headers });
 
         if (!infoResponse.ok) {
@@ -790,3 +790,5 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
