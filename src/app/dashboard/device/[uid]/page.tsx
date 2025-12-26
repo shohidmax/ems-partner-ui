@@ -38,11 +38,11 @@ interface DeviceInfo {
 
 interface DeviceDataPoint {
     uid: string;
-    timestamp: string | { $date: string };
+    timestamp: string; // Now a string like "26-12-2025 07:38:04 AM"
     pssensor?: { cable?: number, mpa?: number, avg_mpa?: number, depth_ft?: number };
     environment?: { temp?: number, hum?: number };
     rain?: { count?: number, mm?: number };
-    dateTime?: string;
+    dateTime?: string; // This will be the same as timestamp
     // Legacy flat structure
     temperature?: number;
     water_level?: number;
@@ -51,7 +51,7 @@ interface DeviceDataPoint {
 
 interface ProcessedData {
   uid: string;
-  timestamp: string;
+  timestamp: string; // The original dateTime string
   temperature: number | null;
   water_level: number;
   rainfall: number;
@@ -131,7 +131,7 @@ const renderActiveShape = (props: any) => {
 export default function DeviceDetailsPage() {
   const params = useParams();
   const paramUid = params?.uid;
-  const uid = paramUid ? decodeURIComponent(paramUid as string) : '';
+  const uid = paramUid ? decodeURIComponent(Array.isArray(paramUid) ? paramUid.join('') : paramUid) : '';
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
 
@@ -191,23 +191,25 @@ export default function DeviceDetailsPage() {
         
         const jsonData: DeviceDataPoint[] = await historyResponse.json();
 
-        const processedData = jsonData.map((d): ProcessedData => {
+        const processedData = jsonData.map((d): ProcessedData | null => {
+            // The primary source of time is now dateTime or timestamp (which is the same string)
+            const timeString = d.dateTime || d.timestamp;
+            if (!timeString) return null;
+
             const temp = d.environment?.temp ?? d.temperature;
             const water = d.pssensor?.depth_ft ?? d.water_level;
             const rain = d.rain?.mm ?? d.rainfall;
             const humidity = d.environment?.hum ?? null;
             
-            const timestampValue = typeof d.timestamp === 'object' && d.timestamp !== null && '$date' in d.timestamp ? d.timestamp.$date : d.timestamp as string;
-
             return {
                 uid: d.uid,
-                timestamp: timestampValue,
+                timestamp: timeString, // Use the string directly
                 temperature: (temp === 85 || typeof temp !== 'number') ? null : temp,
                 water_level: (typeof water !== 'number') ? 0 : water,
                 rainfall: (typeof rain !== 'number') ? 0 : rain,
                 humidity: (typeof humidity !== 'number') ? null : humidity,
             }
-        }).filter((d: any) => d.timestamp && !d.timestamp.startsWith('1970-'));
+        }).filter((d): d is ProcessedData => d !== null && !d.timestamp.startsWith('1970-'));
         
         setDeviceHistory(processedData);
 
@@ -265,7 +267,8 @@ export default function DeviceDetailsPage() {
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
-    return [...deviceHistory].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    // Since we sort by receivedAt on server, the last item is the latest
+    return deviceHistory[deviceHistory.length - 1];
   }, [deviceHistory]);
   
   const mapLocation = useMemo(() => {
@@ -411,8 +414,8 @@ export default function DeviceDetailsPage() {
         ["Latest Humidity:", latestData?.humidity !== null && latestData?.humidity !== undefined ? `${latestData?.humidity?.toFixed(1)} %` : 'N/A'],
         ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} ft` : 'N/A'],
         ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
-        ["Filter Start:", appliedStartDate ? formatToBDTime(appliedStartDate) : 'All'],
-        ["Filter End:", appliedEndDate ? formatToBDTime(appliedEndDate) : 'All'],
+        ["Filter Start:", appliedStartDate ? formatToBDTime(new Date(appliedStartDate).toISOString()) : 'All'],
+        ["Filter End:", appliedEndDate ? formatToBDTime(new Date(appliedEndDate).toISOString()) : 'All'],
     ];
 
     if (deviceInfo?.latitude && deviceInfo?.longitude) {
@@ -678,9 +681,9 @@ export default function DeviceDetailsPage() {
           <CardContent className="h-[400px] p-0">
              {loading ? <div className="h-full flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={deviceHistory.slice().reverse()}>
+                <LineChart data={deviceHistory}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[1] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[0] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C / %', angle: -90, position: 'insideLeft' }} />
                   <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'ft / mm', angle: -90, position: 'insideRight' }}/>
                   <Tooltip content={<ChartTooltipContent />} />
@@ -791,5 +794,7 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
 
     

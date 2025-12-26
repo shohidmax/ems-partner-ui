@@ -8,23 +8,29 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatToBDTime(dateString: string) {
   if (!dateString) return 'N/A';
+  // The dateString is now the exact dateTime string from the device.
+  // We will format it to a consistent 'en-GB' format for display.
   try {
-    const date = new Date(dateString);
-    // Manually add 6 hours
-    date.setHours(date.getHours() + 6);
-    return date.toLocaleString('en-GB', {
-      timeZone: 'UTC', // Display the modified time as is
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    }).replace(/, /g, ' ');
-  } catch (error) {
-    console.error('Invalid date string for formatToBDTime:', dateString);
-    return 'Invalid Date';
+     // Attempt to parse the date string. It might be in 'DD-MM-YYYY HH:mm:ss A' or ISO format.
+     const date = new Date(dateString.replace(/-/g, '/').replace(' ', 'T'));
+     if (isNaN(date.getTime())) return dateString; // Return original string if parsing fails
+
+     // Format to 'dd/mm/yy, hh:mm:ss am/pm' and then clean it up.
+     return date.toLocaleString('en-GB', {
+        timeZone: 'Asia/Dhaka',
+        year: '2-digit',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+    }).replace(/\//g, '-').replace(',', '');
+  } catch(e) {
+    return dateString; // Fallback to original string
   }
 }
 
+
+
+    
