@@ -130,7 +130,8 @@ const renderActiveShape = (props: any) => {
 
 export default function DeviceDetailsPage() {
   const params = useParams();
-  const uid = params ? decodeURIComponent(params.uid as string) : '';
+  const paramUid = params?.uid;
+  const uid = paramUid ? decodeURIComponent(paramUid as string) : '';
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
 
