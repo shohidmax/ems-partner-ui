@@ -304,7 +304,7 @@ export default function DeviceListPage() {
                       <div className="flex justify-between items-center text-base">
                         <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground"><Droplets className="h-4 w-4 text-sky-500"/>Water Level</div>
                         <span className="font-bold text-sky-500">
-                          {device.data?.water_level !== undefined ? `${device.data.water_level.toFixed(2)} m` : 'N/A'}
+                          {device.data?.water_level !== undefined ? `${device.data.water_level.toFixed(2)} ft` : 'N/A'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-base">

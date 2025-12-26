@@ -293,7 +293,7 @@ export default function DeviceDetailsPage() {
     return [
       { name: `Avg Temp`, value: Math.max(0.01, avgTemp), unit: '°C' },
       { name: `Avg Humidity`, value: Math.max(0.01, avgHumidity), unit: '%' },
-      { name: `Avg Water`, value: Math.max(0.01, avgWater), unit: 'm' },
+      { name: `Avg Water`, value: Math.max(0.01, avgWater), unit: 'ft' },
       { name: `Avg Rain`, value: Math.max(0.01, avgRain), unit: 'mm' },
     ];
   }, [deviceHistory]);
@@ -408,7 +408,7 @@ export default function DeviceDetailsPage() {
         ["Last Updated:", latestData ? formatToBDTime(latestData.timestamp) : 'N/A'],
         ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
         ["Latest Humidity:", latestData?.humidity !== null && latestData?.humidity !== undefined ? `${latestData?.humidity?.toFixed(1)} %` : 'N/A'],
-        ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} m` : 'N/A'],
+        ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} ft` : 'N/A'],
         ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
         ["Filter Start:", appliedStartDate ? formatToBDTime(appliedStartDate) : 'All'],
         ["Filter End:", appliedEndDate ? formatToBDTime(appliedEndDate) : 'All'],
@@ -473,7 +473,7 @@ export default function DeviceDetailsPage() {
     currentY += 8;
 
     (doc as any).autoTable({
-        head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (m)', 'Rain (mm)']],
+        head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
         body: deviceHistory.map(d => [
             formatToBDTime(d.timestamp),
             d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
@@ -628,7 +628,7 @@ export default function DeviceDetailsPage() {
         </div>
           <div><p className="text-sm text-muted-foreground">Temperature</p><p className="font-bold text-2xl text-amber-500">{latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}</p></div>
           <div><p className="text-sm text-muted-foreground">Humidity</p><p className="font-bold text-2xl text-purple-500">{latestData?.humidity !== null && latestData?.humidity !== undefined ? `${latestData.humidity.toFixed(1)} %` : 'N/A'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} m` : 'N/A'}</p></div>
+          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} ft` : 'N/A'}</p></div>
           <div><p className="text-sm text-muted-foreground">Daily Rainfall</p><p className="font-bold text-2xl text-emerald-500">{latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}</p></div>
         </CardContent>
       </Card>
@@ -681,7 +681,7 @@ export default function DeviceDetailsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[1] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C / %', angle: -90, position: 'insideLeft' }} />
-                  <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'm / mm', angle: -90, position: 'insideRight' }}/>
+                  <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'ft / mm', angle: -90, position: 'insideRight' }}/>
                   <Tooltip content={<ChartTooltipContent />} />
                   <Legend />
                   <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temperature" stroke="#fbbf24" dot={false} connectNulls />
@@ -753,7 +753,7 @@ export default function DeviceDetailsPage() {
                   <TableHead>Timestamp</TableHead>
                   <TableHead className="text-center">Temp (°C)</TableHead>
                   <TableHead className="text-center">Humidity (%)</TableHead>
-                  <TableHead className="text-center">Water (m)</TableHead>
+                  <TableHead className="text-center">Water (ft)</TableHead>
                   <TableHead className="text-center">Rain (mm)</TableHead>
                 </TableRow>
               </TableHeader>

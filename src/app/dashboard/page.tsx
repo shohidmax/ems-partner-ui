@@ -177,7 +177,7 @@ export default function DashboardPage() {
                         <Droplets className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-sky-500">{avgWater.toFixed(2)} m</div>
+                        <div className="text-2xl font-bold text-sky-500">{avgWater.toFixed(2)} ft</div>
                         <p className="text-xs text-muted-foreground">Across your online devices</p>
                     </CardContent>
                 </Card>
