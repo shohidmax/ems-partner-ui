@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -9,8 +10,10 @@ export function formatToBDTime(dateString: string) {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
+    // Manually add 6 hours
+    date.setHours(date.getHours() + 6);
     return date.toLocaleString('en-GB', {
-      timeZone: 'Asia/Dhaka', // Use the IANA time zone for Bangladesh
+      timeZone: 'UTC', // Display the modified time as is
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -24,3 +27,4 @@ export function formatToBDTime(dateString: string) {
     return 'Invalid Date';
   }
 }
+
