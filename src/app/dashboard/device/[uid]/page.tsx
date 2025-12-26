@@ -38,7 +38,7 @@ interface DeviceInfo {
 
 interface DeviceDataPoint {
     uid: string;
-    timestamp: string;
+    timestamp: string | { $date: string };
     pssensor?: { cable?: number, mpa?: number, avg_mpa?: number, depth_ft?: number };
     environment?: { temp?: number, hum?: number };
     rain?: { count?: number, mm?: number };
@@ -193,10 +193,12 @@ export default function DeviceDetailsPage() {
             let temp = d.environment?.temp ?? d.temperature;
             let water = d.pssensor?.depth_ft ?? d.water_level;
             let rain = d.rain?.mm ?? d.rainfall;
+            
+            const timestampValue = typeof d.timestamp === 'object' && d.timestamp !== null && '$date' in d.timestamp ? d.timestamp.$date : d.timestamp as string;
 
             return {
                 uid: d.uid,
-                timestamp: d.timestamp,
+                timestamp: timestampValue,
                 temperature: (temp === 85 || typeof temp !== 'number') ? null : temp,
                 water_level: (typeof water !== 'number') ? 0 : water,
                 rainfall: (typeof rain !== 'number') ? 0 : rain,
@@ -210,7 +212,7 @@ export default function DeviceDetailsPage() {
     } finally {
         setLoading(false);
     }
-  }, [token, uid, isAdmin]);
+  }, [token, uid]);
 
   const fetchDeviceInfo = useCallback(async () => {
     if (!token || !uid) return;
@@ -361,6 +363,7 @@ export default function DeviceDetailsPage() {
   const downloadPDF = async () => {
     setIsPdfLoading(true);
     const doc = new (jsPDF as any)('p', 'mm', 'a4');
+    autoTable(doc); // Initialize autoTable plugin
     const pageMargin = 15;
     let currentY = pageMargin;
 
@@ -405,7 +408,7 @@ export default function DeviceDetailsPage() {
         summaryBody.push(["Longitude:", deviceInfo.longitude.toString()]);
     }
     
-    autoTable(doc, {
+    (doc as any).autoTable({
         body: summaryBody,
         startY: currentY,
         theme: 'plain',
@@ -458,7 +461,7 @@ export default function DeviceDetailsPage() {
     doc.text('Filtered Data Points', pageMargin, currentY);
     currentY += 8;
 
-    autoTable(doc, {
+    (doc as any).autoTable({
         head: [['Timestamp', 'Temp (°C)', 'Water (m)', 'Rain (mm)']],
         body: deviceHistory.map(d => [
             formatToBDTime(d.timestamp),
