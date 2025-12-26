@@ -130,7 +130,7 @@ const renderActiveShape = (props: any) => {
 export default function DeviceDetailsPage() {
   const params = useParams();
   const paramUid = params?.uid;
-  const uid = paramUid ? decodeURIComponent(Array.isArray(paramUid) ? paramUid.join('') : paramUid) : '';
+  const uid = paramUid ? decodeURIComponent(Array.isArray(paramUid) ? paramUid[0] : paramUid) : '';
   const { user, isAdmin, token } = useUser();
   const { toast } = useToast();
 
@@ -388,7 +388,6 @@ export default function DeviceDetailsPage() {
   const downloadPDF = async () => {
     setIsPdfLoading(true);
     const doc = new (jsPDF as any)('p', 'mm', 'a4');
-    autoTable(doc); // Initialize autoTable plugin
     const pageMargin = 15;
     let currentY = pageMargin;
 
