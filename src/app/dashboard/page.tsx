@@ -11,8 +11,8 @@ import { useUser } from '@/hooks/use-user';
 import { formatToBDTime } from '@/lib/utils';
 
 const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api/protected/devices'
-    : 'https://emspartner.espserver.site/api/protected/devices';
+    ? 'http://localhost:3002/api/user/devices'
+    : 'https://emspartner.espserver.site/api/user/devices';
 
 interface DeviceInfo {
   uid: string;
