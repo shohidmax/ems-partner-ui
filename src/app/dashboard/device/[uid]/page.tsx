@@ -55,6 +55,7 @@ interface ProcessedData {
   water_level: number;
   rainfall: number;
   humidity: number | null;
+  dateTime?: string;
 }
 
 
@@ -215,6 +216,7 @@ export default function DeviceDetailsPage() {
             return {
                 uid: d.uid,
                 timestamp: timeString,
+                dateTime: timeString,
                 temperature: (temp === 85 || typeof temp !== 'number') ? null : temp,
                 water_level: (typeof water !== 'number') ? 0 : water,
                 rainfall: (typeof rain !== 'number') ? 0 : rain,
@@ -387,7 +389,7 @@ export default function DeviceDetailsPage() {
 
   const downloadPDF = async () => {
     setIsPdfLoading(true);
-    const doc = new (jsPDF as any)('p', 'mm', 'a4');
+    const doc = new jsPDF('p', 'mm', 'a4');
     const pageMargin = 15;
     let currentY = pageMargin;
 
@@ -433,7 +435,7 @@ export default function DeviceDetailsPage() {
         summaryBody.push(["Longitude:", deviceInfo.longitude.toString()]);
     }
     
-    (doc as any).autoTable({
+    autoTable(doc, {
         body: summaryBody,
         startY: currentY,
         theme: 'plain',
@@ -486,7 +488,7 @@ export default function DeviceDetailsPage() {
     doc.text('Filtered Data Points', pageMargin, currentY);
     currentY += 8;
 
-    (doc as any).autoTable({
+    autoTable(doc, {
         head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
         body: deviceHistory.map(d => [
             formatToBDTime(d.timestamp),
@@ -693,7 +695,7 @@ export default function DeviceDetailsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={deviceHistory}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="timestamp" tickFormatter={(ts) => formatToBDTime(ts).split(',')[0] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <XAxis dataKey="dateTime" tickFormatter={(ts) => formatToBDTime(ts).split(',')[0] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C / %', angle: -90, position: 'insideLeft' }} />
                   <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'ft / mm', angle: -90, position: 'insideRight' }}/>
                   <Tooltip content={<ChartTooltipContent />} />
@@ -804,5 +806,7 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
 
     

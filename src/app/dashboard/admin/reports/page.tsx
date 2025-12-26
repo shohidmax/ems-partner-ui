@@ -90,7 +90,7 @@ export default function AdminReportsPage() {
       return;
     }
     setIsPdfLoading(true);
-    const doc = new (jsPDF as any)('p', 'mm', 'a4');
+    const doc = new jsPDF('p', 'mm', 'a4');
     let currentY = 15;
 
     doc.setFontSize(18);
@@ -225,3 +225,5 @@ export default function AdminReportsPage() {
     </div>
   );
 }
+
+    
