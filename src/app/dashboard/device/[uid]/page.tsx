@@ -164,10 +164,10 @@ export default function DeviceDetailsPage() {
   
     const setDefaultTimeRange = useCallback(() => {
         const now = new Date();
-        const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+        const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
         
         const endStr = toLocalISOString(now);
-        const startStr = toLocalISOString(oneHourAgo);
+        const startStr = toLocalISOString(twelveHoursAgo);
 
         setStartDate(startStr);
         setEndDate(endStr);
