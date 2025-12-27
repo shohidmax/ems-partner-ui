@@ -702,7 +702,7 @@ export default function DeviceDetailsPage() {
        )}
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <Card className="lg:col-span-3" id="line-chart-container">
+        <Card className="lg:col-span-3 light" id="line-chart-container">
           <CardHeader><CardTitle>Sensor History</CardTitle></CardHeader>
           <CardContent className="h-[400px] p-0">
              {loading ? <div className="h-full flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
