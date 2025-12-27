@@ -394,7 +394,6 @@ export default function DeviceDetailsPage() {
     const pageWidth = doc.internal.pageSize.getWidth();
     let currentY = pageMargin;
 
-    // Report Header
     if (qrCodeUrl) {
         doc.addImage(qrCodeUrl, 'PNG', pageWidth - pageMargin - 30, currentY, 30, 30);
     }
@@ -403,7 +402,6 @@ export default function DeviceDetailsPage() {
     doc.text('Environmental Monitoring Report', pageMargin, currentY + 5);
     currentY += 15;
 
-    // Device Info
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     if (deviceInfo?.institution) {
@@ -421,7 +419,6 @@ export default function DeviceDetailsPage() {
     doc.text(`Device UID: ${uid}`, pageMargin, currentY);
     currentY += 10;
     
-    // Summary Table
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', pageMargin, currentY);
@@ -453,7 +450,6 @@ export default function DeviceDetailsPage() {
     });
     currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    // Charts side-by-side
     const lineChartEl = document.querySelector<HTMLElement>('#line-chart-container');
     const pieChartEl = document.querySelector<HTMLElement>('#pie-chart-container');
 
@@ -463,48 +459,35 @@ export default function DeviceDetailsPage() {
     const pieCanvas = pieChartEl ? await html2canvas(pieChartEl, chartOptions) : null;
 
     const chartHeight = 80;
-    const halfWidth = (pageWidth - pageMargin * 2) / 2;
+    const halfWidth = (pageWidth - pageMargin * 2 - 10) / 2;
 
     if (currentY + chartHeight > doc.internal.pageSize.getHeight() - pageMargin) {
         doc.addPage();
         currentY = pageMargin;
     }
 
-    if (lineCanvas && pieCanvas) {
-        const lineImgData = lineCanvas.toDataURL('image/png');
-        const pieImgData = pieCanvas.toDataURL('image/png');
-        const lineProps = doc.getImageProperties(lineImgData);
-        const pieProps = doc.getImageProperties(pieImgData);
-        const lineRatio = lineProps.height / lineProps.width;
-        const pieRatio = pieProps.height / pieProps.width;
-        const imgWidth = halfWidth - 5;
-        
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+
+    if (lineCanvas) {
         doc.text('Sensor History', pageMargin, currentY);
-        doc.addImage(lineImgData, 'PNG', pageMargin, currentY + 2, imgWidth, imgWidth * lineRatio);
-        
-        doc.text('Averages (Filtered)', pageMargin + halfWidth, currentY);
-        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth, currentY + 2, imgWidth, imgWidth * pieRatio);
-        
-        currentY += Math.max(imgWidth * lineRatio, imgWidth * pieRatio) + 10;
-    } else if (lineCanvas) {
         const lineImgData = lineCanvas.toDataURL('image/png');
         const lineProps = doc.getImageProperties(lineImgData);
         const lineRatio = lineProps.height / lineProps.width;
-        const imgWidth = pageWidth - pageMargin * 2;
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Sensor History', pageMargin, currentY);
-        doc.addImage(lineImgData, 'PNG', pageMargin, currentY + 2, imgWidth, imgWidth * lineRatio);
-        currentY += (imgWidth * lineRatio) + 10;
+        doc.addImage(lineImgData, 'PNG', pageMargin, currentY + 2, halfWidth, halfWidth * lineRatio);
     }
     
-    // Data Table
-    if (currentY > doc.internal.pageSize.getHeight() - 50) {
-        doc.addPage();
-        currentY = pageMargin;
+    if (pieCanvas) {
+        doc.text('Averages (Filtered)', pageMargin + halfWidth + 10, currentY);
+        const pieImgData = pieCanvas.toDataURL('image/png');
+        const pieProps = doc.getImageProperties(pieImgData);
+        const pieRatio = pieProps.height / pieProps.width;
+        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth + 10, currentY + 2, halfWidth, halfWidth * pieRatio);
     }
+    
+    doc.addPage();
+    currentY = pageMargin;
+
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Filtered Data Points', pageMargin, currentY);
@@ -828,3 +811,4 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
