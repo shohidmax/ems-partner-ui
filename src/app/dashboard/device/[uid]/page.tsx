@@ -767,7 +767,7 @@ export default function DeviceDetailsPage() {
               style={{ border: 0 }}
               loading="lazy"
               allowFullScreen
-              src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${mapLocation.lat},${mapLocation.lng}`}>
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapLocation.lng-0.05},${mapLocation.lat-0.05},${mapLocation.lng+0.05},${mapLocation.lat+0.05}&layer=mapnik&marker=${mapLocation.lat},${mapLocation.lng}`}>
             </iframe>
           </CardContent>
         </Card>
