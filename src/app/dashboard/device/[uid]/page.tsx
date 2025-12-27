@@ -391,20 +391,21 @@ export default function DeviceDetailsPage() {
     setIsPdfLoading(true);
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageMargin = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
     let currentY = pageMargin;
 
+    // Report Header
     if (qrCodeUrl) {
-      doc.addImage(qrCodeUrl, 'PNG', doc.internal.pageSize.getWidth() - pageMargin - 30, currentY, 30, 30);
+        doc.addImage(qrCodeUrl, 'PNG', pageWidth - pageMargin - 30, currentY, 30, 30);
     }
-
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Environmental Monitoring Report', pageMargin, currentY + 5);
     currentY += 15;
-    
+
+    // Device Info
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-
     if (deviceInfo?.institution) {
         doc.text(`Institution: ${deviceInfo.institution}`, pageMargin, currentY);
         currentY += 6;
@@ -418,9 +419,9 @@ export default function DeviceDetailsPage() {
         currentY += 6;
     }
     doc.text(`Device UID: ${uid}`, pageMargin, currentY);
-    
     currentY += 10;
-
+    
+    // Summary Table
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', pageMargin, currentY);
@@ -434,7 +435,6 @@ export default function DeviceDetailsPage() {
     const avgWater = deviceHistory.length > 0 ? (deviceHistory.reduce((a, b) => a + b.water_level, 0) / deviceHistory.length) : 0;
     const totalRain = deviceHistory.reduce((a, b) => a + b.rainfall, 0);
 
-
     const summaryBody: (string | number)[][] = [
         ["Filter Start:", appliedStartDate ? formatToBDTime(new Date(appliedStartDate).toISOString()) : 'All Time'],
         ["Filter End:", appliedEndDate ? formatToBDTime(new Date(appliedEndDate).toISOString()) : 'All Time'],
@@ -444,11 +444,6 @@ export default function DeviceDetailsPage() {
         ["Total Rainfall:", `${totalRain.toFixed(2)} mm`],
     ];
 
-    if (deviceInfo?.latitude && deviceInfo?.longitude) {
-        summaryBody.push(["Latitude:", deviceInfo.latitude.toString()]);
-        summaryBody.push(["Longitude:", deviceInfo.longitude.toString()]);
-    }
-    
     autoTable(doc, {
         body: summaryBody,
         startY: currentY,
@@ -456,47 +451,60 @@ export default function DeviceDetailsPage() {
         styles: { fontSize: 10, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 0 } },
         columnStyles: { 0: { fontStyle: 'bold' } },
     });
-    
     currentY = (doc as any).lastAutoTable.finalY + 15;
 
-    const addChartToPdf = async (chartSelector: string, title: string) => {
-        const chartEl = document.querySelector<HTMLElement>(chartSelector);
-        if (chartEl) {
-          const canvas = await html2canvas(chartEl, { backgroundColor: '#ffffff', scale: 2 });
-          const imgData = canvas.toDataURL('image/png');
-          const imgProps = doc.getImageProperties(imgData);
-          const aspectRatio = imgProps.height / imgProps.width;
-          let imgWidth = doc.internal.pageSize.getWidth() - 2 * pageMargin;
-          let imgHeight = imgWidth * aspectRatio;
-          
-          if (imgHeight > 100) {
-              imgHeight = 100;
-              imgWidth = imgHeight / aspectRatio;
-          }
+    // Charts side-by-side
+    const lineChartEl = document.querySelector<HTMLElement>('#line-chart-container');
+    const pieChartEl = document.querySelector<HTMLElement>('#pie-chart-container');
 
-          if (currentY + imgHeight > doc.internal.pageSize.getHeight() - pageMargin) {
-              doc.addPage();
-              currentY = pageMargin;
-          }
+    const chartOptions = { backgroundColor: '#ffffff', scale: 2 };
+    
+    const lineCanvas = lineChartEl ? await html2canvas(lineChartEl, chartOptions) : null;
+    const pieCanvas = pieChartEl ? await html2canvas(pieChartEl, chartOptions) : null;
 
-          doc.setFontSize(14);
-          doc.setFont('helvetica', 'bold');
-          doc.text(title, pageMargin, currentY);
-          currentY += 8;
-          const xOffset = (doc.internal.pageSize.getWidth() - imgWidth) / 2;
-          doc.addImage(imgData, 'PNG', xOffset, currentY, imgWidth, imgHeight);
-          currentY += imgHeight + 10;
-        }
-    };
+    const chartHeight = 80;
+    const halfWidth = (pageWidth - pageMargin * 2) / 2;
+
+    if (currentY + chartHeight > doc.internal.pageSize.getHeight() - pageMargin) {
+        doc.addPage();
+        currentY = pageMargin;
+    }
+
+    if (lineCanvas && pieCanvas) {
+        const lineImgData = lineCanvas.toDataURL('image/png');
+        const pieImgData = pieCanvas.toDataURL('image/png');
+        const lineProps = doc.getImageProperties(lineImgData);
+        const pieProps = doc.getImageProperties(pieImgData);
+        const lineRatio = lineProps.height / lineProps.width;
+        const pieRatio = pieProps.height / pieProps.width;
+        const imgWidth = halfWidth - 5;
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Sensor History', pageMargin, currentY);
+        doc.addImage(lineImgData, 'PNG', pageMargin, currentY + 2, imgWidth, imgWidth * lineRatio);
+        
+        doc.text('Averages (Filtered)', pageMargin + halfWidth, currentY);
+        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth, currentY + 2, imgWidth, imgWidth * pieRatio);
+        
+        currentY += Math.max(imgWidth * lineRatio, imgWidth * pieRatio) + 10;
+    } else if (lineCanvas) {
+        const lineImgData = lineCanvas.toDataURL('image/png');
+        const lineProps = doc.getImageProperties(lineImgData);
+        const lineRatio = lineProps.height / lineProps.width;
+        const imgWidth = pageWidth - pageMargin * 2;
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Sensor History', pageMargin, currentY);
+        doc.addImage(lineImgData, 'PNG', pageMargin, currentY + 2, imgWidth, imgWidth * lineRatio);
+        currentY += (imgWidth * lineRatio) + 10;
+    }
     
-    await addChartToPdf('#line-chart-container', 'Sensor History');
-    await addChartToPdf('#pie-chart-container', 'Averages (Filtered)');
-    
+    // Data Table
     if (currentY > doc.internal.pageSize.getHeight() - 50) {
         doc.addPage();
         currentY = pageMargin;
     }
-    
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Filtered Data Points', pageMargin, currentY);
