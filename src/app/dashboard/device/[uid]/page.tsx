@@ -224,7 +224,7 @@ export default function DeviceDetailsPage() {
             }
         }).filter((d): d is ProcessedData => d !== null && !d.timestamp.startsWith('1970-'));
         
-        setDeviceHistory(processedData);
+        setDeviceHistory(processedData.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
 
     } catch (e: any) {
         setError(e.message || 'Failed to fetch device data. The server might be offline. Please try again later.');
@@ -419,21 +419,29 @@ export default function DeviceDetailsPage() {
     }
     doc.text(`Device UID: ${uid}`, pageMargin, currentY);
     
-    currentY += 20;
+    currentY += 10;
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('Summary', pageMargin, currentY);
     currentY += 8;
 
+    const validTemps = deviceHistory.map(d => d.temperature).filter((t): t is number => t !== null);
+    const validHumidity = deviceHistory.map(d => d.humidity).filter((h): h is number => h !== null);
+    
+    const avgTemp = validTemps.length > 0 ? (validTemps.reduce((a, b) => a + b, 0) / validTemps.length) : null;
+    const avgHumidity = validHumidity.length > 0 ? (validHumidity.reduce((a, b) => a + b, 0) / validHumidity.length) : null;
+    const avgWater = deviceHistory.length > 0 ? (deviceHistory.reduce((a, b) => a + b.water_level, 0) / deviceHistory.length) : 0;
+    const totalRain = deviceHistory.reduce((a, b) => a + b.rainfall, 0);
+
+
     const summaryBody: (string | number)[][] = [
-        ["Last Updated:", latestData ? formatToBDTime(latestData.timestamp) : 'N/A'],
-        ["Latest Temperature:", latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData?.temperature?.toFixed(1)} °C` : 'N/A'],
-        ["Latest Humidity:", latestData?.humidity !== null && latestData?.humidity !== undefined ? `${latestData?.humidity?.toFixed(1)} %` : 'N/A'],
-        ["Latest Water Level:", latestData?.water_level !== undefined ? `${latestData?.water_level?.toFixed(2)} ft` : 'N/A'],
-        ["Latest Rainfall:", latestData?.rainfall !== undefined ? `${latestData?.rainfall?.toFixed(2)} mm` : 'N/A'],
-        ["Filter Start:", appliedStartDate ? formatToBDTime(new Date(appliedStartDate).toISOString()) : 'All'],
-        ["Filter End:", appliedEndDate ? formatToBDTime(new Date(appliedEndDate).toISOString()) : 'All'],
+        ["Filter Start:", appliedStartDate ? formatToBDTime(new Date(appliedStartDate).toISOString()) : 'All Time'],
+        ["Filter End:", appliedEndDate ? formatToBDTime(new Date(appliedEndDate).toISOString()) : 'All Time'],
+        ["Average Temperature:", avgTemp !== null ? `${avgTemp.toFixed(1)} °C` : 'N/A'],
+        ["Average Humidity:", avgHumidity !== null ? `${avgHumidity.toFixed(1)} %` : 'N/A'],
+        ["Average Water Level:", `${avgWater.toFixed(2)} ft`],
+        ["Total Rainfall:", `${totalRain.toFixed(2)} mm`],
     ];
 
     if (deviceInfo?.latitude && deviceInfo?.longitude) {
