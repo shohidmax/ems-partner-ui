@@ -36,7 +36,7 @@ interface AdminDevice {
   lastSeen: string | null;
   addedAt: string;
   owners: DeviceOwner[];
-  division?: string | null;
+  institution?: string | null;
 }
 
 export default function AdminDeviceManagerPage() {
@@ -104,8 +104,8 @@ export default function AdminDeviceManagerPage() {
     if (!editingDevice || !token) return;
     setIsSaving(true);
     try {
-      const { uid, name, location, latitude, longitude, division } = editingDevice;
-      const body: any = { name, location, division };
+      const { uid, name, location, latitude, longitude, institution } = editingDevice;
+      const body: any = { name, location, institution };
       if (latitude !== undefined) body.latitude = latitude;
       if (longitude !== undefined) body.longitude = longitude;
 
@@ -135,9 +135,9 @@ export default function AdminDeviceManagerPage() {
             const nameMatch = device.name?.toLowerCase().includes(searchLower);
             const uidMatch = device.uid.toLowerCase().includes(searchLower);
             const locationMatch = device.location?.toLowerCase().includes(searchLower);
-            const divisionMatch = device.division?.toLowerCase().includes(searchLower);
+            const institutionMatch = device.institution?.toLowerCase().includes(searchLower);
             const ownerMatch = device.owners.some(o => o.name?.toLowerCase().includes(searchLower) || o.email?.toLowerCase().includes(searchLower));
-            return nameMatch || uidMatch || locationMatch || ownerMatch || divisionMatch;
+            return nameMatch || uidMatch || locationMatch || ownerMatch || institutionMatch;
         });
   }, [devices, searchQuery]);
 
@@ -180,8 +180,8 @@ export default function AdminDeviceManagerPage() {
                         <Input id="location" value={editingDevice?.location || ''} onChange={(e) => setEditingDevice(d => d ? {...d, location: e.target.value} : null)} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="division" className="text-right">Division</Label>
-                        <Input id="division" value={editingDevice?.division || ''} onChange={(e) => setEditingDevice(d => d ? {...d, division: e.target.value} : null)} className="col-span-3" />
+                        <Label htmlFor="institution" className="text-right">Institution</Label>
+                        <Input id="institution" value={editingDevice?.institution || ''} onChange={(e) => setEditingDevice(d => d ? {...d, institution: e.target.value} : null)} className="col-span-3" />
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="latitude" className="text-right">Latitude</Label>
@@ -320,3 +320,5 @@ export default function AdminDeviceManagerPage() {
     </div>
   );
 }
+
+    

@@ -33,7 +33,7 @@ interface DeviceInfo {
   longitude?: number | null;
   status: 'online' | 'offline' | 'unknown';
   lastSeen: string | null;
-  division?: string | null;
+  institution?: string | null;
 }
 
 interface DeviceDataPoint {
@@ -153,7 +153,7 @@ export default function DeviceDetailsPage() {
   const [editingLocation, setEditingLocation] = useState('');
   const [editingLatitude, setEditingLatitude] = useState<number | null | undefined>(null);
   const [editingLongitude, setEditingLongitude] = useState<number | null | undefined>(null);
-  const [editingDivision, setEditingDivision] = useState<string | null | undefined>(null);
+  const [editingInstitution, setEditingInstitution] = useState<string | null | undefined>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activePieIndex, setActivePieIndex] = useState(0);
 
@@ -254,7 +254,7 @@ export default function DeviceDetailsPage() {
             setEditingLocation(currentDevice.location || '');
             setEditingLatitude(currentDevice.latitude);
             setEditingLongitude(currentDevice.longitude);
-            setEditingDivision(currentDevice.division);
+            setEditingInstitution(currentDevice.institution);
         } else {
             setError(`Device with UID ${uid} not found or you don't have access.`);
         }
@@ -364,7 +364,7 @@ export default function DeviceDetailsPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name: editingName, location: editingLocation, latitude: editingLatitude, longitude: editingLongitude, division: editingDivision })
+        body: JSON.stringify({ name: editingName, location: editingLocation, latitude: editingLatitude, longitude: editingLongitude, institution: editingInstitution })
       });
       if (!response.ok) throw new Error('Failed to save device.');
       
@@ -377,7 +377,7 @@ export default function DeviceDetailsPage() {
             location: editingLocation,
             latitude: editingLatitude,
             longitude: editingLongitude,
-            division: editingDivision
+            institution: editingInstitution
         });
       }
     } catch (e: any) {
@@ -413,9 +413,9 @@ export default function DeviceDetailsPage() {
         currentY += 6;
         doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY + 5);
     }
-    if (deviceInfo?.division) {
+    if (deviceInfo?.institution) {
         currentY += 6;
-        doc.text(`Division: ${deviceInfo.division}`, pageMargin, currentY + 5);
+        doc.text(`Institution: ${deviceInfo.institution}`, pageMargin, currentY + 5);
     }
     currentY += 25;
 
@@ -564,8 +564,8 @@ export default function DeviceDetailsPage() {
                     <Input id="location" value={editingLocation} onChange={(e) => setEditingLocation(e.target.value)} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="division" className="text-right">Division</Label>
-                    <Input id="division" value={editingDivision || ''} onChange={(e) => setEditingDivision(e.target.value)} className="col-span-3" />
+                    <Label htmlFor="institution" className="text-right">Institution</Label>
+                    <Input id="institution" value={editingInstitution || ''} onChange={(e) => setEditingInstitution(e.target.value)} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="latitude" className="text-right">Latitude</Label>
@@ -810,3 +810,5 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
