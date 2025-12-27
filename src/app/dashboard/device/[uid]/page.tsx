@@ -400,24 +400,26 @@ export default function DeviceDetailsPage() {
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Environmental Monitoring Report', pageMargin, currentY + 5);
-    currentY += 10;
+    currentY += 15;
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Device UID: ${uid}`, pageMargin, currentY + 5);
-     if (deviceInfo?.name) {
+
+    if (deviceInfo?.institution) {
+        doc.text(`Institution: ${deviceInfo.institution}`, pageMargin, currentY);
         currentY += 6;
-        doc.text(`Device Name: ${deviceInfo.name}`, pageMargin, currentY + 5);
+    }
+    if (deviceInfo?.name) {
+        doc.text(`Device Name: ${deviceInfo.name}`, pageMargin, currentY);
+        currentY += 6;
     }
     if (deviceInfo?.location) {
+        doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY);
         currentY += 6;
-        doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY + 5);
     }
-    if (deviceInfo?.institution) {
-        currentY += 6;
-        doc.text(`Institution: ${deviceInfo.institution}`, pageMargin, currentY + 5);
-    }
-    currentY += 25;
+    doc.text(`Device UID: ${uid}`, pageMargin, currentY);
+    
+    currentY += 20;
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -810,5 +812,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-    
