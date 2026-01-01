@@ -468,21 +468,23 @@ export default function DeviceDetailsPage() {
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
+    
+    const chartY = currentY;
 
     if (lineCanvas) {
-        doc.text('Sensor History', pageMargin, currentY);
+        doc.text('Sensor History', pageMargin, chartY);
         const lineImgData = lineCanvas.toDataURL('image/png');
         const lineProps = doc.getImageProperties(lineImgData);
         const lineRatio = lineProps.height / lineProps.width;
-        doc.addImage(lineImgData, 'PNG', pageMargin, currentY + 2, halfWidth, halfWidth * lineRatio);
+        doc.addImage(lineImgData, 'PNG', pageMargin, chartY + 2, halfWidth, halfWidth * lineRatio);
     }
     
     if (pieCanvas) {
-        doc.text('Averages (Filtered)', pageMargin + halfWidth + 10, currentY);
+        doc.text('Averages (Filtered)', pageMargin + halfWidth + 10, chartY);
         const pieImgData = pieCanvas.toDataURL('image/png');
         const pieProps = doc.getImageProperties(pieImgData);
         const pieRatio = pieProps.height / pieProps.width;
-        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth + 10, currentY + 2, halfWidth, halfWidth * pieRatio);
+        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth + 10, chartY + 2, halfWidth, halfWidth * pieRatio);
     }
     
     doc.addPage();
@@ -557,16 +559,16 @@ export default function DeviceDetailsPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="institution" className="text-right">Institution</Label>
+                    <Input id="institution" value={editingInstitution || ''} onChange={(e) => setEditingInstitution(e.target.value)} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">Name</Label>
                     <Input id="name" value={editingName} onChange={(e) => setEditingName(e.target.value)} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="location" className="text-right">Location</Label>
                     <Input id="location" value={editingLocation} onChange={(e) => setEditingLocation(e.target.value)} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="institution" className="text-right">Institution</Label>
-                    <Input id="institution" value={editingInstitution || ''} onChange={(e) => setEditingInstitution(e.target.value)} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="latitude" className="text-right">Latitude</Label>
@@ -812,3 +814,6 @@ export default function DeviceDetailsPage() {
   );
 }
 
+
+
+    

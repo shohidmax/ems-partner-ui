@@ -171,6 +171,10 @@ export default function AdminDeviceManagerPage() {
                     <DialogTitle>Edit Device: {editingDevice?.name || editingDevice?.uid}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="institution" className="text-right">Institution</Label>
+                        <Input id="institution" value={editingDevice?.institution || ''} onChange={(e) => setEditingDevice(d => d ? {...d, institution: e.target.value} : null)} className="col-span-3" />
+                    </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="name" className="text-right">Name</Label>
                         <Input id="name" value={editingDevice?.name || ''} onChange={(e) => setEditingDevice(d => d ? {...d, name: e.target.value} : null)} className="col-span-3" />
@@ -178,10 +182,6 @@ export default function AdminDeviceManagerPage() {
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="location" className="text-right">Location</Label>
                         <Input id="location" value={editingDevice?.location || ''} onChange={(e) => setEditingDevice(d => d ? {...d, location: e.target.value} : null)} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="institution" className="text-right">Institution</Label>
-                        <Input id="institution" value={editingDevice?.institution || ''} onChange={(e) => setEditingDevice(d => d ? {...d, institution: e.target.value} : null)} className="col-span-3" />
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="latitude" className="text-right">Latitude</Label>
@@ -320,5 +320,7 @@ export default function AdminDeviceManagerPage() {
     </div>
   );
 }
+
+    
 
     

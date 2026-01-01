@@ -38,9 +38,9 @@ const app = express();
 const http_server = http.createServer(app);
 const io = new Server(http_server, {
     cors: { origin: "*" } // Socket.io CORS
-});
+});   
 
-// --- ইমেইল ট্রান্সপোর্টার ---
+// --- ইমেইল ট্রান্সপোর্টার ---bhh
 let mailTransporter;
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     mailTransporter = nodemailer.createTransport({
