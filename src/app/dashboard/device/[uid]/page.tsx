@@ -435,6 +435,8 @@ export default function DeviceDetailsPage() {
     const summaryBody: (string | number)[][] = [
         ["Filter Start:", appliedStartDate ? formatToBDTime(new Date(appliedStartDate).toISOString()) : 'All Time'],
         ["Filter End:", appliedEndDate ? formatToBDTime(new Date(appliedEndDate).toISOString()) : 'All Time'],
+        ["Latitude:", deviceInfo?.latitude ?? 'N/A'],
+        ["Longitude:", deviceInfo?.longitude ?? 'N/A'],
         ["Average Temperature:", avgTemp !== null ? `${avgTemp.toFixed(1)} °C` : 'N/A'],
         ["Average Humidity:", avgHumidity !== null ? `${avgHumidity.toFixed(1)} %` : 'N/A'],
         ["Average Water Level:", `${avgWater.toFixed(2)} ft`],
@@ -814,6 +816,7 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
 
 
 
