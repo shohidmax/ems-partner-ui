@@ -26,7 +26,7 @@ export function formatToBDTime(dateString: string) {
             minute: '2-digit',
             second: '2-digit',
             hour12: true,
-        }).replace(/\//g, '-').replace(',', '');
+        }).replace(',', '');
      }
 
      return date.toLocaleString('en-GB', {
@@ -38,7 +38,7 @@ export function formatToBDTime(dateString: string) {
         minute: '2-digit',
         second: '2-digit',
         hour12: true,
-    }).replace(/\//g, '-').replace(',', '');
+    }).replace(',', '');
   } catch(e) {
     return dateString; // Fallback to original string on any error
   }
