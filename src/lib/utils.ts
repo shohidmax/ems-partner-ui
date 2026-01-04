@@ -20,7 +20,7 @@ export function formatToBDTime(dateString: string) {
         
         return fallbackDate.toLocaleString('en-GB', {
             timeZone: 'Asia/Dhaka',
-            year: '2-digit',
+            year: 'numeric',
             month: '2-digit',
             day: '2-digit',
             hour: '2-digit',
@@ -33,7 +33,7 @@ export function formatToBDTime(dateString: string) {
      // Format to 'dd-mm-yy, hh:mm:ss am/pm'
      return date.toLocaleString('en-GB', {
         timeZone: 'Asia/Dhaka',
-        year: '2-digit',
+        year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
