@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain, Wind } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
-import { formatToBDTime } from '@/lib/utils';
+import { formatToBDDate } from '@/lib/utils';
 
 const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
     ? 'http://localhost:3002/api/user/devices'
@@ -216,7 +216,7 @@ export default function DashboardPage() {
                                     {`Temp: ${device.data?.temperature !== null && device.data?.temperature !== undefined ? device.data.temperature.toFixed(1) + '°C' : 'N/A'}`}
                                 </p>
                             </div>
-                            <div className="ml-auto font-medium text-sm text-muted-foreground">{device.lastSeen ? formatToBDTime(device.lastSeen) : 'N/A'}</div>
+                            <div className="ml-auto font-medium text-sm text-muted-foreground">{device.lastSeen ? formatToBDDate(device.lastSeen) : 'N/A'}</div>
                         </div>
                       ))
                      }

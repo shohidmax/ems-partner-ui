@@ -18,7 +18,7 @@ import html2canvas from 'html2canvas';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
-import { formatToBDTime } from '@/lib/utils';
+import { formatToBDTime, formatToBDDate } from '@/lib/utils';
 
 
 const API_URL_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
@@ -470,21 +470,22 @@ export default function DeviceDetailsPage() {
     doc.setFont('helvetica', 'bold');
     
     const chartY = currentY;
+    const chartTitleY = chartY - 2;
 
     if (lineCanvas) {
-        doc.text('Sensor History', pageMargin, chartY);
+        doc.text('Sensor History', pageMargin, chartTitleY);
         const lineImgData = lineCanvas.toDataURL('image/png');
         const lineProps = doc.getImageProperties(lineImgData);
         const lineRatio = lineProps.height / lineProps.width;
-        doc.addImage(lineImgData, 'PNG', pageMargin, chartY + 2, halfWidth, halfWidth * lineRatio);
+        doc.addImage(lineImgData, 'PNG', pageMargin, chartY, halfWidth, halfWidth * lineRatio);
     }
     
     if (pieCanvas) {
-        doc.text('Averages (Filtered)', pageMargin + halfWidth + 10, chartY);
+        doc.text('Averages (Filtered)', pageMargin + halfWidth + 10, chartTitleY);
         const pieImgData = pieCanvas.toDataURL('image/png');
         const pieProps = doc.getImageProperties(pieImgData);
         const pieRatio = pieProps.height / pieProps.width;
-        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth + 10, chartY + 2, halfWidth, halfWidth * pieRatio);
+        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth + 10, chartY, halfWidth, halfWidth * pieRatio);
     }
     
     doc.addPage();
@@ -645,7 +646,7 @@ export default function DeviceDetailsPage() {
             <p className="text-sm text-muted-foreground">Last Updated</p>
             {latestData ? (
                 <div className="font-semibold text-lg">
-                    {formatToBDTime(latestData.timestamp)}
+                    {formatToBDDate(latestData.timestamp)}
                 </div>
             ) : <p className="font-semibold text-lg">'N/A'</p>}
         </div>
@@ -816,4 +817,3 @@ export default function DeviceDetailsPage() {
 
 
 
-    
