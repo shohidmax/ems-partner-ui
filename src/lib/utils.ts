@@ -10,14 +10,15 @@ export function formatToBDTime(dateString: string) {
   if (!dateString) return 'N/A';
   
   try {
-     // Handle different possible date string formats, including ISO strings
      const date = new Date(dateString);
      if (isNaN(date.getTime())) {
-        // Fallback for custom 'DD-MM-YYYY HH:mm:ss A' format if new Date() fails
+        // Fallback for custom formats if new Date() fails.
+        // This is a robust way to handle potentially non-standard date strings.
         const cleanedString = dateString.replace(/-/g, '/').replace(' ', 'T');
         const fallbackDate = new Date(cleanedString);
         if (isNaN(fallbackDate.getTime())) return dateString; // Return original if all parsing fails
         
+        // Using 'en-GB' locale forces the DD/MM/YYYY format.
         return fallbackDate.toLocaleString('en-GB', {
             timeZone: 'Asia/Dhaka',
             year: 'numeric',
@@ -30,7 +31,7 @@ export function formatToBDTime(dateString: string) {
         }).replace(/\//g, '-').replace(',', '');
      }
 
-     // Format to 'dd-mm-yy, hh:mm:ss am/pm'
+     // Using 'en-GB' locale forces the DD/MM/YYYY format.
      return date.toLocaleString('en-GB', {
         timeZone: 'Asia/Dhaka',
         year: 'numeric',
@@ -42,6 +43,6 @@ export function formatToBDTime(dateString: string) {
         hour12: true,
     }).replace(/\//g, '-').replace(',', '');
   } catch(e) {
-    return dateString; // Fallback to original string
+    return dateString; // Fallback to original string on any error
   }
 }
