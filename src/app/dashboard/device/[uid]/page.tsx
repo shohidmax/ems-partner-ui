@@ -270,15 +270,8 @@ export default function DeviceDetailsPage() {
 
   useEffect(() => {
     if (token && uid) {
-      const fetchData = () => {
-        fetchDeviceInfo();
-        fetchDeviceHistory(appliedStartDate, appliedEndDate);
-      };
-
-      fetchData(); 
-      const interval = setInterval(fetchData, 30000); 
-
-      return () => clearInterval(interval);
+      fetchDeviceInfo();
+      fetchDeviceHistory(appliedStartDate, appliedEndDate);
     }
   }, [uid, token, fetchDeviceInfo, fetchDeviceHistory, appliedStartDate, appliedEndDate]);
 
@@ -820,3 +813,6 @@ export default function DeviceDetailsPage() {
 
 
 
+
+
+    

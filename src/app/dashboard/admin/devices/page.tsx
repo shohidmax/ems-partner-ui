@@ -119,8 +119,14 @@ export default function AdminDeviceManagerPage() {
       });
       if (!response.ok) throw new Error('Failed to save device.');
       toast({ title: 'Success', description: 'Device updated successfully.' });
+      
+      // Update local state instead of re-fetching
+      setDevices(prevDevices => 
+        prevDevices.map(d => d.uid === uid ? editingDevice : d)
+      );
+      
       setEditingDevice(null);
-      await fetchDevices(); // Refresh list
+
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     } finally {
@@ -320,6 +326,8 @@ export default function AdminDeviceManagerPage() {
     </div>
   );
 }
+
+    
 
     
 
