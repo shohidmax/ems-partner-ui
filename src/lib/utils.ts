@@ -27,9 +27,8 @@ export function formatToBDTime(dateString: string) {
   const date = getLocaleDate(dateString);
   if (!date) return dateString;
 
-  return date.toLocaleString('en-GB', {
+  return date.toLocaleString('en-US', {
     timeZone: 'Asia/Dhaka',
-    hour12: true,
   }).replace(',', '');
 }
 
@@ -37,7 +36,7 @@ export function formatToBDDate(dateString: string) {
     const date = getLocaleDate(dateString);
     if (!date) return dateString;
 
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString('en-US', {
         timeZone: 'Asia/Dhaka'
     });
 }
