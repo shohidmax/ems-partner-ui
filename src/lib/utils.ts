@@ -27,26 +27,27 @@ export function formatToBDTime(dateString: string) {
   const date = getLocaleDate(dateString);
   if (!date) return dateString;
 
-  return date.toLocaleString('en-GB', {
+  const day = date.toLocaleDateString('en-GB', { day: '2-digit', timeZone: 'Asia/Dhaka' });
+  const month = date.toLocaleDateString('en-GB', { month: 'long', timeZone: 'Asia/Dhaka' });
+  const year = date.toLocaleDateString('en-GB', { year: 'numeric', timeZone: 'Asia/Dhaka' });
+  const time = date.toLocaleTimeString('en-US', {
       timeZone: 'Asia/Dhaka',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
       hour12: true,
-  }).replace(',', '');
+  });
+
+  return `${day}/${month}/${year} ${time}`;
 }
 
 export function formatToBDDate(dateString: string) {
     const date = getLocaleDate(dateString);
     if (!date) return dateString;
 
-    return date.toLocaleDateString('en-GB', {
-        timeZone: 'Asia/Dhaka',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    });
+    const day = date.toLocaleDateString('en-GB', { day: '2-digit', timeZone: 'Asia/Dhaka' });
+    const month = date.toLocaleDateString('en-GB', { month: 'long', timeZone: 'Asia/Dhaka' });
+    const year = date.toLocaleDateString('en-GB', { year: 'numeric', timeZone: 'Asia/Dhaka' });
+
+    return `${day}/${month}/${year}`;
 }
