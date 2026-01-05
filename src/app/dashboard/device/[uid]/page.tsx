@@ -778,7 +778,7 @@ export default function DeviceDetailsPage() {
               </TableHeader>
               <TableBody>
                 {deviceHistory.length > 0 ? (
-                  deviceHistory.map((d, i) => (
+                  deviceHistory.slice().sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
                         {formatToBDTime(d.timestamp)}
