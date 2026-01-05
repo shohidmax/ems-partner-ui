@@ -62,11 +62,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [router, pathname]);
     
-    const fetchUserProfile = useCallback(async () => {
-        const currentToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const fetchUserProfile = useCallback(async (currentToken: string) => {
         if (!currentToken) {
-            logout();
-            return;
+            throw new Error("No token provided to fetchUserProfile");
         }
 
         try {
@@ -80,8 +78,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                     const errorBody = await response.text();
                     console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
                 }
-                logout();
-                return;
+                throw new Error("Failed to fetch user profile");
             }
             const fullProfile: UserProfile = await response.json();
             setUser(fullProfile);
@@ -90,12 +87,11 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
         } catch (error) {
              console.error('Error fetching user profile:', error);
-             logout();
+             throw error; // Re-throw to be caught by callers
         }
-    }, [logout]);
+    }, []);
     
     const initializeAuth = useCallback(async () => {
-        setIsLoading(true);
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         
         if (tokenFromStorage) {
@@ -104,7 +100,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 if (decoded.exp * 1000 < Date.now()) {
                     logout();
                 } else {
-                    await fetchUserProfile();
+                    await fetchUserProfile(tokenFromStorage);
                 }
             } catch (error) {
                 logout();
@@ -152,16 +148,16 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('token', data.token);
                 }
-                await fetchUserProfile();
+                await fetchUserProfile(data.token);
+                setIsLoading(false); // Set loading to false only after profile is fetched
                 return true;
             }
 
             throw new Error('Login process failed: No token received.');
         } catch (error: any) {
             logout(); 
+            setIsLoading(false); // Ensure loading is false on error
             throw error;
-        } finally {
-            setIsLoading(false);
         }
     };
     
@@ -172,7 +168,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading, 
         login, 
         logout, 
-        fetchUserProfile,
+        // fetchUserProfile is internal, so we don't expose it without a token
+        fetchUserProfile: () => fetchUserProfile(token!),
     };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
