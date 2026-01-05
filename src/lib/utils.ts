@@ -29,6 +29,13 @@ export function formatToBDTime(dateString: string) {
 
   return date.toLocaleString('en-US', {
     timeZone: 'Asia/Dhaka',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
   }).replace(',', '');
 }
 
@@ -37,6 +44,9 @@ export function formatToBDDate(dateString: string) {
     if (!date) return dateString;
 
     return date.toLocaleDateString('en-US', {
-        timeZone: 'Asia/Dhaka'
+        timeZone: 'Asia/Dhaka',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
     });
 }
