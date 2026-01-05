@@ -16,9 +16,7 @@ import { cn, formatToBDTime } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002'
-    : 'https://emspartner.espserver.site';
+const API_BASE_URL = '';
 const API_URL = `${API_BASE_URL}/api`;
 
 interface DeviceOwner {

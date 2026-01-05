@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -11,9 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
-const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api/admin/report'
-    : 'https://emspartner.espserver.site/api/admin/report';
+const API_URL = '/api/admin/report';
 
 type ReportPeriod = 'daily' | 'monthly' | 'yearly';
 

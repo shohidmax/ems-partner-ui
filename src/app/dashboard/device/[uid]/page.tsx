@@ -21,9 +21,7 @@ import { Label } from '@/components/ui/label';
 import { formatToBDTime, formatToBDDate } from '@/lib/utils';
 
 
-const API_URL_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002'
-    : 'https://emspartner.espserver.site';
+const API_URL_BASE = '';
 
 interface DeviceInfo {
   uid: string;
@@ -778,7 +776,7 @@ export default function DeviceDetailsPage() {
               </TableHeader>
               <TableBody>
                 {deviceHistory.length > 0 ? (
-                  deviceHistory.slice().sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((d, i) => (
+                  deviceHistory.slice().reverse().map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
                         {formatToBDTime(d.timestamp)}

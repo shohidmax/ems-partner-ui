@@ -9,9 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 import { Loader2 } from 'lucide-react';
 
-const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api/user/device/add'
-    : 'https://emspartner.espserver.site/api/user/device/add';
+const API_URL = '/api/user/device/add';
 
 interface AddDeviceDialogProps {
     open: boolean;

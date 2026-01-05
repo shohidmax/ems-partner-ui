@@ -14,9 +14,7 @@ import { AddDeviceDialog } from "@/components/add-device-dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_URL_BASE = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002'
-    : 'https://emspartner.espserver.site';
+const API_URL_BASE = '';
 
 interface UserDevice {
     uid: string;

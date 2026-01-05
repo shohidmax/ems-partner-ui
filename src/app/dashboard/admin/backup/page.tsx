@@ -10,9 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/hooks/use-user';
 
-const API_BASE_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002'
-    : 'https://emspartner.espserver.site';
+const API_BASE_URL = '';
 const API_URL = `${API_BASE_URL}/api/admin/backup`;
 
 interface JobStatus {

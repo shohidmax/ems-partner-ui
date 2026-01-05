@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://emspartner.espserver.site/api/:path*',
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

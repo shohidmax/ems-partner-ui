@@ -20,9 +20,7 @@ import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api/auth/register'
-    : 'https://emspartner.espserver.site/api/auth/register';
+const API_URL = '/api/auth/register';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),

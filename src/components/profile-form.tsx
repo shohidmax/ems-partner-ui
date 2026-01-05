@@ -20,9 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 
-const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api/user/profile/update'
-    : 'https://emspartner.espserver.site/api/user/profile/update';
+const API_URL = '/api/user/profile/update';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),

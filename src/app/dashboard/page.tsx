@@ -10,9 +10,7 @@ import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain, Wind }
 import { useUser } from '@/hooks/use-user';
 import { formatToBDDate } from '@/lib/utils';
 
-const API_URL = (typeof window !== 'undefined' && window.location.hostname === 'localhost')
-    ? 'http://localhost:3002/api/user/devices'
-    : 'https://emspartner.espserver.site/api/user/devices';
+const API_URL = '/api/user/devices';
 
 interface DeviceInfo {
   uid: string;
