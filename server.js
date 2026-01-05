@@ -377,9 +377,17 @@ const userRouter = express.Router();
 userRouter.use(authenticateJWT);
 
 userRouter.get('/profile', async (req, res) => {
-    const user = await req.db.collection('users').findOne({ _id: new ObjectId(req.user.userId) }, { projection: { passwordHash: 0 } });
-    if(user) user.isAdmin = user.isAdmin || (process.env.ADMIN_EMAIL === user.email);
-    res.send(user || {});
+    try {
+        const user = await req.db.collection('users').findOne({ _id: new ObjectId(req.user.userId) }, { projection: { passwordHash: 0 } });
+        if (user) {
+            user.isAdmin = user.isAdmin || (process.env.ADMIN_EMAIL === user.email);
+            res.send(user);
+        } else {
+            res.status(404).send({ message: "User not found." });
+        }
+    } catch(e) {
+        res.status(500).send({ message: 'Internal server error fetching profile.'});
+    }
 });
 
 userRouter.post('/profile/update', async (req, res) => {
@@ -764,3 +772,4 @@ startServer();
     
 
     
+
