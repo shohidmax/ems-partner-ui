@@ -493,7 +493,7 @@ export default function DeviceDetailsPage() {
 
     autoTable(doc, {
         head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
-        body: deviceHistory.map(d => [
+        body: deviceHistory.slice().reverse().map(d => [
             formatToBDTime(d.timestamp),
             d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
             d.humidity !== null ? d.humidity.toFixed(1) : 'N/A',
@@ -778,7 +778,7 @@ export default function DeviceDetailsPage() {
               </TableHeader>
               <TableBody>
                 {deviceHistory.length > 0 ? (
-                  deviceHistory.slice().reverse().map((d, i) => (
+                  deviceHistory.map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
                         {formatToBDTime(d.timestamp)}
