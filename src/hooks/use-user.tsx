@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
 
-const API_URL = '/';
+const API_URL = '';
 
 export interface UserProfile {
     _id: string;
