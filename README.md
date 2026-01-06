@@ -2,7 +2,7 @@
 
 This is a NextJS starter in Firebase Studio.
 <<<<<<< HEAD
-# hello2
+# hello24
 =======
 >>>>>>> a6760e6 (0000)
 To get started, take a look at src/app/page.tsx.
