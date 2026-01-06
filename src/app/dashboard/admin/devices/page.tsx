@@ -304,8 +304,10 @@ export default function AdminDeviceManagerPage() {
                             </div>
                         </CardContent>
                          <div className="p-4 pt-4 border-t flex items-center justify-between">
-                            
-                             <Button variant="outline" size="icon" className="h-8 w-8 ml-auto">
+                            <p className="text-xs text-muted-foreground">
+                                {device.lastSeen ? `Last seen: ${formatToBDTime(device.lastSeen)}` : 'Never seen'}
+                            </p>
+                             <Button variant="outline" size="icon" className="h-8 w-8">
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
                          </div>
@@ -322,10 +324,3 @@ export default function AdminDeviceManagerPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
-
