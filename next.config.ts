@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://emspartner.espserver.site/api/:path*',
+        destination: 'https://ems-partner-server-1.onrender.com/api/:path*',
       },
     ];
   },
