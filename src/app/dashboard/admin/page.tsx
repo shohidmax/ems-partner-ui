@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download, User } from 'lucide-react';
+import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download, User, Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
+import { Badge } from '@/components/ui/badge';
 
 const API_URL = '';
+const API_SERVER_URL = 'https://ems-partner-server-2.onrender.com';
 
 interface AdminStats {
   totalDevices: number;
@@ -155,7 +157,15 @@ export default function AdminDashboardPage() {
                         <div className="flex items-center">
                             <div className="h-2.5 w-2.5 rounded-full mr-3 bg-green-500"></div>
                             <p className="text-sm font-medium">API Server</p>
-                            <div className="ml-auto font-medium text-sm text-green-500">Online</div>
+                            <div className="ml-auto flex items-center gap-2">
+                                <Badge asChild variant="outline">
+                                    <Link href={API_SERVER_URL} target="_blank" rel="noopener noreferrer">
+                                        <LinkIcon className="h-3 w-3 mr-1" />
+                                        Link
+                                    </Link>
+                                </Badge>
+                                <div className="font-medium text-sm text-green-500">Online</div>
+                            </div>
                         </div>
                         <div className="flex items-center">
                             <div className="h-2.5 w-2.5 rounded-full mr-3 bg-green-500"></div>
