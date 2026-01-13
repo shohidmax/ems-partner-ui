@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
-import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin, Wind } from 'lucide-react';
+import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin, Wind, ArrowUp, ArrowDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
@@ -256,6 +256,30 @@ export default function DeviceDetailsPage() {
     if (deviceHistory.length === 0) return null;
     return deviceHistory[deviceHistory.length - 1];
   }, [deviceHistory]);
+
+    const summaryStats = useMemo(() => {
+        if (deviceHistory.length === 0) return null;
+
+        const getStats = (key: 'temperature' | 'humidity' | 'water_level' | 'rainfall') => {
+            const values = deviceHistory.map(d => d[key]).filter((v): v is number => v !== null && typeof v === 'number');
+            if (values.length === 0) return { avg: null, min: null, max: null };
+            
+            const sum = values.reduce((a, b) => a + b, 0);
+            const avg = sum / values.length;
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            return { avg, min, max };
+        };
+        
+        const totalRainfall = deviceHistory.reduce((sum, d) => sum + d.rainfall, 0);
+
+        return {
+            temperature: getStats('temperature'),
+            humidity: getStats('humidity'),
+            water_level: getStats('water_level'),
+            rainfall: { ...getStats('rainfall'), total: totalRainfall },
+        };
+    }, [deviceHistory]);
   
   const mapLocation = useMemo(() => {
     if (deviceInfo?.latitude && deviceInfo?.longitude) {
@@ -608,22 +632,51 @@ export default function DeviceDetailsPage() {
       )}
       
        <Card>
-          <CardHeader>
-              <CardTitle>Device Last Data</CardTitle>
-          </CardHeader>
-        <CardContent className="p-4 grid grid-cols-2 lg:grid-cols-5 gap-4 text-center">
-        <div>
-            <p className="text-sm text-muted-foreground">Last Updated</p>
-            {latestData ? (
-                <div className="font-semibold text-lg">
-                    {formatToBDDate(latestData.timestamp)}
-                </div>
-            ) : <p className="font-semibold text-lg">'N/A'</p>}
-        </div>
-          <div><p className="text-sm text-muted-foreground">Temperature</p><p className="font-bold text-2xl text-amber-500">{latestData?.temperature !== null && latestData?.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : 'N/A'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Humidity</p><p className="font-bold text-2xl text-purple-500">{latestData?.humidity !== null && latestData?.humidity !== undefined ? `${latestData.humidity.toFixed(1)} %` : 'N/A'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Water Level</p><p className="font-bold text-2xl text-sky-500">{latestData?.water_level !== undefined ? `${latestData.water_level.toFixed(2)} ft` : 'N/A'}</p></div>
-          <div><p className="text-sm text-muted-foreground">Daily Rainfall</p><p className="font-bold text-2xl text-emerald-500">{latestData?.rainfall !== undefined ? `${latestData.rainfall.toFixed(2)} mm` : 'N/A'}</p></div>
+        <CardHeader>
+            <CardTitle>Filtered Range Summary</CardTitle>
+            <CardDescription>
+                Summary of data from {appliedStartDate ? formatToBDTime(appliedStartDate) : 'the beginning'} to {appliedEndDate ? formatToBDTime(appliedEndDate) : 'now'}.
+                {latestData && (
+                    <span className="block mt-1">Last Updated: <span className="font-semibold">{formatToBDTime(latestData.timestamp)}</span></span>
+                )}
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {summaryStats ? (
+                <>
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-sm font-medium text-muted-foreground text-amber-500">Temperature</h4>
+                        <p className="text-2xl font-bold">{summaryStats.temperature.avg?.toFixed(1) ?? 'N/A'} °C</p>
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500"/>Min: {summaryStats.temperature.min?.toFixed(1) ?? 'N/A'}</span>
+                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500"/>Max: {summaryStats.temperature.max?.toFixed(1) ?? 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-sm font-medium text-muted-foreground text-purple-500">Humidity</h4>
+                        <p className="text-2xl font-bold">{summaryStats.humidity.avg?.toFixed(1) ?? 'N/A'} %</p>
+                         <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500"/>Min: {summaryStats.humidity.min?.toFixed(1) ?? 'N/A'}</span>
+                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500"/>Max: {summaryStats.humidity.max?.toFixed(1) ?? 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-sm font-medium text-muted-foreground text-sky-500">Water Level</h4>
+                        <p className="text-2xl font-bold">{summaryStats.water_level.avg?.toFixed(2) ?? 'N/A'} ft</p>
+                         <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500"/>Min: {summaryStats.water_level.min?.toFixed(2) ?? 'N/A'}</span>
+                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500"/>Max: {summaryStats.water_level.max?.toFixed(2) ?? 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-sm font-medium text-muted-foreground text-emerald-500">Rainfall</h4>
+                        <p className="text-2xl font-bold">{summaryStats.rainfall.total?.toFixed(2) ?? 'N/A'} mm</p>
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>Total in Range</span>
+                        </div>
+                    </div>
+                </>
+            ) : <p className="col-span-full text-center">No data to display summary.</p>}
         </CardContent>
       </Card>
 
