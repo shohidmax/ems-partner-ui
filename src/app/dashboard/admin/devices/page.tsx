@@ -273,8 +273,8 @@ export default function AdminDeviceManagerPage() {
                                 <h4 className="text-sm font-medium mb-2">Owners</h4>
                                 {device.owners.length > 0 ? (
                                     <div className="space-y-2">
-                                        {device.owners.map(owner => (
-                                            <Tooltip key={owner._id}>
+                                        {device.owners.map((owner, index) => (
+                                            <Tooltip key={`${owner._id}-${index}`}>
                                                 <TooltipTrigger asChild>
                                                     <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md text-xs">
                                                         <User className="h-3 w-3" />
@@ -314,3 +314,5 @@ export default function AdminDeviceManagerPage() {
     </div>
   );
 }
+
+    
