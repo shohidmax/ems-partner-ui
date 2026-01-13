@@ -19,9 +19,7 @@ import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { formatToBDTime, formatToBDDate } from '@/lib/utils';
-
-
-const API_URL_BASE = '';
+import { apiFetch } from '@/lib/api';
 
 interface DeviceInfo {
   uid: string;
@@ -180,27 +178,16 @@ export default function DeviceDetailsPage() {
     setError(null);
     
     try {
-        const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-        
-        let url = `${API_URL_BASE}/api/public/device/data-by-range`;
+        let url = `/api/public/device/data-by-range`;
         const body: any = { uid };
         if (start) body.start = start;
         if (end) body.end = end;
         
-        const historyResponse = await fetch(url, { 
+        const { data: jsonData } = await apiFetch<DeviceDataPoint[]>(url, { 
             method: 'POST',
-            headers: headers,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
-
-        if (!historyResponse.ok) {
-            if (historyResponse.status === 403) {
-                 throw new Error('You do not have permission to view this device.');
-            }
-            throw new Error(`Failed to fetch device data. Status: ${historyResponse.status}`);
-        }
-        
-        const jsonData: DeviceDataPoint[] = await historyResponse.json();
 
         const processedData = jsonData.map((d): ProcessedData | null => {
             const timeString = d.dateTime || d.timestamp;
@@ -234,16 +221,8 @@ export default function DeviceDetailsPage() {
   const fetchDeviceInfo = useCallback(async () => {
     if (!token || !uid) return;
     try {
-        const headers = { 'Authorization': `Bearer ${token}` };
-        const infoUrl = isAdmin ? `${API_URL_BASE}/api/admin/devices` : `${API_URL_BASE}/api/user/devices`;
-        const infoResponse = await fetch(infoUrl, { headers });
-
-        if (!infoResponse.ok) {
-            setError("Could not verify device ownership.");
-            return;
-        }
-
-        const devices: DeviceInfo[] = await infoResponse.json();
+        const infoUrl = isAdmin ? `/api/admin/devices` : `/api/user/devices`;
+        const { data: devices } = await apiFetch<DeviceInfo[]>(infoUrl);
         const currentDevice = devices.find(d => d.uid === uid);
         
         if (currentDevice) {
@@ -349,15 +328,13 @@ export default function DeviceDetailsPage() {
     if (!token || !isAdmin) return;
     setIsSaving(true);
     try {
-      const response = await fetch(`${API_URL_BASE}/api/admin/device/${uid}`, {
+      await apiFetch(`/api/admin/device/${uid}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ name: editingName, location: editingLocation, latitude: editingLatitude, longitude: editingLongitude, institution: editingInstitution })
       });
-      if (!response.ok) throw new Error('Failed to save device.');
       
       toast({ title: 'Success', description: 'Device updated successfully.' });
       setIsEditDialogOpen(false);
@@ -807,10 +784,3 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
-
-
-
-
-
-
-    

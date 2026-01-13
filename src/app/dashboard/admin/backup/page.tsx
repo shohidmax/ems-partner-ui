@@ -9,9 +9,9 @@ import { Download, Loader2, TriangleAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { useUser } from '@/hooks/use-user';
+import { apiFetch, getActiveServer } from '@/lib/api';
 
-const API_BASE_URL = '';
-const API_URL = `${API_BASE_URL}/api/admin/backup`;
+const API_PATH = '/api/admin/backup';
 
 interface JobStatus {
     status: 'pending' | 'counting' | 'exporting' | 'zipping' | 'done' | 'error';
@@ -55,21 +55,13 @@ export default function BackupPage() {
         }
 
         try {
-            const response = await fetch(`${API_URL}/start`, {
+            const { data: jobData, response } = await apiFetch<{ jobId: string }>(`${API_PATH}/start`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ uid: uid || undefined })
             });
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.message || 'Failed to start backup job.');
-            }
-            
-            const { jobId: newJobId } = await response.json();
+            const { jobId: newJobId } = jobData;
             setJobId(newJobId);
             listenToJob(newJobId);
 
@@ -83,7 +75,8 @@ export default function BackupPage() {
 
     const listenToJob = (id: string) => {
         if (!token) return;
-        const es = new EventSource(`${API_URL}/status/${id}?token=${token}`);
+        const activeServer = getActiveServer();
+        const es = new EventSource(`${activeServer}${API_PATH}/status/${id}?token=${token}`);
         eventSourceRef.current = es;
 
         es.onmessage = (event) => {
@@ -186,7 +179,7 @@ export default function BackupPage() {
 
                         {downloadUrl && jobStatus?.status === 'done' && (
                             <Button asChild className="w-full">
-                                <a href={`${API_BASE_URL}${downloadUrl}`} download>
+                                <a href={`${getActiveServer()}${downloadUrl}`} download>
                                     <Download className="mr-2 h-4 w-4" />
                                     Download Backup
                                 </a>

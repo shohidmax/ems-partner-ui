@@ -4,9 +4,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-
-
-const API_URL = '';
+import { apiFetch, setApiToken, clearApiToken } from '@/lib/api';
 
 export interface UserProfile {
     _id: string;
@@ -56,40 +54,24 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
         setToken(null);
         setIsAdmin(false);
+        clearApiToken();
         const isAuthPage = ['/login', '/register', '/reset-password'].includes(pathname);
         if (!isAuthPage && pathname !== '/') {
             router.replace('/login');
         }
     }, [router, pathname]);
     
-    const fetchUserProfile = useCallback(async (currentToken: string) => {
-        if (!currentToken) {
-            throw new Error("No token provided to fetchUserProfile");
-        }
-
+    const fetchUserProfile = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/user/profile`, {
-                headers: { 'Authorization': `Bearer ${currentToken}` }
-            });
-             if (!response.ok) {
-                 if (response.status === 401 || response.status === 403) {
-                     console.error('Profile fetch failed: Unauthorized or Forbidden');
-                } else {
-                    const errorBody = await response.text();
-                    console.error(`Profile fetch failed with status ${response.status}: ${errorBody}`);
-                }
-                throw new Error("Failed to fetch user profile");
-            }
-            const fullProfile: UserProfile = await response.json();
+            const { data: fullProfile } = await apiFetch<UserProfile>('/api/user/profile');
             setUser(fullProfile);
             setIsAdmin(fullProfile.isAdmin);
-            setToken(currentToken);
-
         } catch (error) {
              console.error('Error fetching user profile:', error);
-             throw error; // Re-throw to be caught by callers
+             logout();
+             throw error; 
         }
-    }, []);
+    }, [logout]);
     
     const initializeAuth = useCallback(async () => {
         const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -100,7 +82,9 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
                 if (decoded.exp * 1000 < Date.now()) {
                     logout();
                 } else {
-                    await fetchUserProfile(tokenFromStorage);
+                    setToken(tokenFromStorage);
+                    setApiToken(tokenFromStorage);
+                    await fetchUserProfile();
                 }
             } catch (error) {
                 logout();
@@ -131,32 +115,27 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const login = async (email: string, password: string): Promise<boolean> => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/auth/login`, {
+            const { data } = await apiFetch<{ token: string }>('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                 const errorData = await response.json();
-                 throw new Error(errorData.message || 'Login failed');
-            }
-            
-            const data = await response.json();
+            }, true); // Pass true to skip auth for login
 
             if (data.token) {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('token', data.token);
                 }
-                await fetchUserProfile(data.token);
-                setIsLoading(false); // Set loading to false only after profile is fetched
+                setToken(data.token);
+                setApiToken(data.token);
+                await fetchUserProfile();
+                setIsLoading(false);
                 return true;
             }
 
             throw new Error('Login process failed: No token received.');
         } catch (error: any) {
             logout(); 
-            setIsLoading(false); // Ensure loading is false on error
+            setIsLoading(false); 
             throw error;
         }
     };
@@ -167,9 +146,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         isAdmin, 
         isLoading, 
         login, 
-        logout, 
-        // fetchUserProfile is internal, so we don't expose it without a token
-        fetchUserProfile: () => fetchUserProfile(token!),
+        logout,
+        fetchUserProfile,
     };
 
     return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

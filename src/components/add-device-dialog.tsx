@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 import { Loader2 } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
-const API_URL = '/api/user/device/add';
+const API_PATH = '/api/user/device/add';
 
 interface AddDeviceDialogProps {
     open: boolean;
@@ -31,19 +32,11 @@ export function AddDeviceDialog({ open, onOpenChange, onDeviceAdded }: AddDevice
 
         startTransition(async () => {
             try {
-                if (!token) throw new Error('Not authenticated.');
-                
-                const response = await fetch(API_URL, {
+                await apiFetch(API_PATH, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ uid: uid.trim() })
                 });
-
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.message || 'Failed to add device.');
 
                 toast({ title: 'Success', description: 'Device added to your account.' });
                 setUid('');

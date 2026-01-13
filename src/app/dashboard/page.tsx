@@ -9,8 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain, Wind } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { formatToBDDate } from '@/lib/utils';
-
-const API_URL = '/api/user/devices';
+import { apiFetch } from '@/lib/api';
 
 interface DeviceInfo {
   uid: string;
@@ -47,14 +46,7 @@ export default function DashboardPage() {
     }
     // Do not set loading to true here to avoid flickering on interval refresh
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-      const response = await fetch(API_URL, { headers, cache: 'no-cache' });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch device list. Status: ${response.status}`);
-      }
-      
-      const deviceList: DeviceInfo[] = await response.json();
+      const { data: deviceList } = await apiFetch<DeviceInfo[]>('/api/user/devices', { cache: 'no-cache' });
       
       setDevices(deviceList.sort((a,b) => (b.lastSeen && a.lastSeen) ? new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime() : 0));
       setError(null);

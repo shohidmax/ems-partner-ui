@@ -8,9 +8,7 @@ import { TriangleAlert, HardDrive, List, Users, Cloud, BarChart, Download, User,
 import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 import { Badge } from '@/components/ui/badge';
-
-const API_URL = '';
-const API_SERVER_URL = 'https://ems-partner-server-2.onrender.com';
+import { apiFetch, getActiveServer } from '@/lib/api';
 
 interface AdminStats {
   totalDevices: number;
@@ -26,8 +24,11 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useUser();
+  const [activeServer, setActiveServer] = useState('');
 
   useEffect(() => {
+    setActiveServer(getActiveServer());
+
     const fetchStats = async () => {
       if (!token) {
         setLoading(false);
@@ -35,15 +36,7 @@ export default function AdminDashboardPage() {
         return;
       }
       try {
-        const response = await fetch(`${API_URL}/api/admin/stats`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!response.ok) {
-           if (response.status === 403) throw new Error('Admin access required.');
-           const errorData = await response.json();
-           throw new Error(errorData.message || `Failed to fetch stats. Status: ${response.status}`);
-        }
-        const data = await response.json();
+        const { data } = await apiFetch<AdminStats>('/api/admin/stats');
         setStats(data);
       } catch (e: any) {
         setError(e.message || 'An unexpected error occurred.');
@@ -159,10 +152,10 @@ export default function AdminDashboardPage() {
                             <p className="text-sm font-medium">API Server</p>
                             <div className="ml-auto flex items-center gap-2">
                                 <Badge asChild variant="outline">
-                                    <Link href={API_SERVER_URL} target="_blank" rel="noopener noreferrer">
+                                    <a href={activeServer} target="_blank" rel="noopener noreferrer">
                                         <LinkIcon className="h-3 w-3 mr-1" />
                                         Link
-                                    </Link>
+                                    </a>
                                 </Badge>
                                 <div className="font-medium text-sm text-green-500">Online</div>
                             </div>

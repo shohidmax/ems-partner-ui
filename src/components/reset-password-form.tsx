@@ -17,8 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Mail, Loader2 } from 'lucide-react';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api';
 
-const API_URL = '/api/auth/password/forgot';
+const API_PATH = '/api/auth/password/forgot';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -38,14 +39,11 @@ export function ResetPasswordForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        const response = await fetch(API_URL, {
+        const { data: result } = await apiFetch(API_PATH, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(values),
         });
-
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || "Failed to send reset email.");
 
         toast({
           title: 'Password Reset Email Sent',

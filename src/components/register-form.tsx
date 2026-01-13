@@ -19,8 +19,9 @@ import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api';
 
-const API_URL = '/api/auth/register';
+const API_PATH = '/api/auth/register';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -46,17 +47,11 @@ export function RegisterForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        const response = await fetch(API_URL, {
+        await apiFetch(API_PATH, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(values),
         });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.message || 'Registration failed.');
-        }
         
         toast({
           title: 'Account created successfully!',

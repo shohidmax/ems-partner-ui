@@ -15,9 +15,9 @@ import { useUser } from '@/hooks/use-user';
 import { cn, formatToBDTime } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { apiFetch } from '@/lib/api';
 
-const API_BASE_URL = '';
-const API_URL = `${API_BASE_URL}/api`;
+const API_PATH = '/api/admin';
 
 interface DeviceOwner {
     _id: string;
@@ -55,14 +55,7 @@ export default function AdminDeviceManagerPage() {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/admin/devices`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!response.ok) {
-        if (response.status === 403) throw new Error('Admin access required to view this page.');
-        throw new Error(`Failed to fetch devices: ${response.statusText}`);
-      }
-      const data = await response.json();
+      const { data } = await apiFetch<AdminDevice[]>(`${API_PATH}/devices`);
       setDevices(data.sort((a: AdminDevice, b: AdminDevice) => {
         if (b.lastSeen && a.lastSeen) {
             return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
@@ -107,15 +100,12 @@ export default function AdminDeviceManagerPage() {
       if (latitude !== undefined) body.latitude = latitude;
       if (longitude !== undefined) body.longitude = longitude;
 
-      const response = await fetch(`${API_URL}/admin/device/${uid}`, {
+      await apiFetch(`${API_PATH}/device/${uid}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      if (!response.ok) throw new Error('Failed to save device.');
+      
       toast({ title: 'Success', description: 'Device updated successfully.' });
       
       // Update local state instead of re-fetching

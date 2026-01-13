@@ -19,8 +19,9 @@ import { useTransition, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api';
 
-const API_URL = '/api/user/profile/update';
+const API_PATH = '/api/user/profile/update';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -61,17 +62,11 @@ export function ProfileForm() {
 
     startTransition(async () => {
       try {
-        const response = await fetch(API_URL, {
+        await apiFetch(API_PATH, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(values),
         });
-
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || "Failed to update profile.");
 
         toast({
             title: 'Success!',

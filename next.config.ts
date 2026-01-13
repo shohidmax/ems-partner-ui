@@ -9,14 +9,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://ems-partner-server-2.onrender.com/api/:path*',
-      },
-    ];
-  },
   images: {
     remotePatterns: [
       {

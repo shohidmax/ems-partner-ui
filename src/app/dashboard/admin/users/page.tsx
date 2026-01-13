@@ -12,8 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatToBDTime } from '@/lib/utils';
-
-const API_BASE_URL = '';
+import { apiFetch } from '@/lib/api';
 
 interface UserData {
   _id: string;
@@ -36,24 +35,7 @@ export default function AdminUserManagerPage() {
     try {
       if (!token) throw new Error('No auth token found.');
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) throw new Error('Admin access required to view this page.');
-        
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Failed to fetch users: ${response.statusText}`);
-        } else {
-            const errorText = await response.text();
-            throw new Error(`Server returned a non-JSON response. Status: ${response.status} - ${errorText}`);
-        }
-      }
-      
-      const data = await response.json();
+      const { data } = await apiFetch<UserData[]>('/api/admin/users');
       setUsers(data.sort((a: UserData, b: UserData) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (e: any) {
       setError(e.message);
@@ -79,19 +61,12 @@ export default function AdminUserManagerPage() {
     const endpoint = newIsAdmin ? 'make-admin' : 'remove-admin';
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/user/${endpoint}`, {
+      const { data: result } = await apiFetch(`/api/admin/user/${endpoint}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: targetUser.email })
       });
 
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to update role.');
-      }
       toast({ title: 'Success', description: `${targetUser.name}'s role has been updated.` });
       // Re-fetch to be sure of the state
       await fetchUsers();

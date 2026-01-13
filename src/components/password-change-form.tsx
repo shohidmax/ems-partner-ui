@@ -18,8 +18,9 @@ import { useTransition, useState } from 'react';
 import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/hooks/use-user';
+import { apiFetch } from '@/lib/api';
 
-const API_URL = '/api/user/password/change';
+const API_PATH = '/api/user/password/change';
 
 const formSchema = z.object({
   oldPassword: z.string().min(1, { message: 'Current password is required.' }),
@@ -44,19 +45,11 @@ export function PasswordChangeForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        if (!token) throw new Error("You are not logged in.");
-
-        const response = await fetch(API_URL, {
+        await apiFetch(API_PATH, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(values)
         });
-
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || "Failed to change password.");
 
         toast({
           title: 'Success',

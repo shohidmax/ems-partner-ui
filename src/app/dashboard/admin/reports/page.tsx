@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
+import { apiFetch } from '@/lib/api';
 
-const API_URL = '/api/admin/report';
+const API_PATH = '/api/admin/report';
 
 type ReportPeriod = 'daily' | 'monthly' | 'yearly';
 
@@ -56,16 +57,8 @@ export default function AdminReportsPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No auth token found.');
-      const url = `${API_URL}?period=${period}&year=${year}`;
-      const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-
-      if (!response.ok) {
-        if (response.status === 403) throw new Error('Admin access required.');
-        throw new Error(`Failed to fetch report: ${response.statusText}`);
-      }
-      const result = await response.json();
+      const url = `${API_PATH}?period=${period}&year=${year}`;
+      const { data: result } = await apiFetch<ReportData[]>(url);
       setData(result);
     } catch (e: any) {
       setError(e.message);
@@ -224,5 +217,3 @@ export default function AdminReportsPage() {
     </div>
   );
 }
-
-    

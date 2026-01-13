@@ -13,8 +13,7 @@ import { useState, useEffect } from "react";
 import { AddDeviceDialog } from "@/components/add-device-dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-const API_URL_BASE = '';
+import { apiFetch } from "@/lib/api";
 
 interface UserDevice {
     uid: string;
@@ -31,13 +30,8 @@ export default function ProfilePage() {
   const fetchUserDevices = async () => {
     if (user && token) {
         try {
-            const response = await fetch(`${API_URL_BASE}/api/user/devices`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if(response.ok) {
-                const devices = await response.json();
-                setUserDevices(devices);
-            }
+            const { data: devices } = await apiFetch<UserDevice[]>('/api/user/devices');
+            setUserDevices(devices);
         } catch (error) {
             console.error("Failed to fetch user devices");
         }

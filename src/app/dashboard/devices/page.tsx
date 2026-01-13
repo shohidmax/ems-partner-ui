@@ -15,10 +15,7 @@ import { cn, formatToBDTime } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { AddDeviceDialog } from '@/components/add-device-dialog';
 import { Badge } from '@/components/ui/badge';
-
-
-const API_BASE_URL = '';
-
+import { apiFetch } from '@/lib/api';
 
 interface DeviceInfo {
   uid: string;
@@ -98,14 +95,7 @@ export default function DeviceListPage() {
         return;
     }
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-      const response = await fetch(`${API_BASE_URL}/api/user/devices`, { headers, cache: 'no-cache' });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch device list. Status: ${response.status}`);
-      }
-      
-      const deviceList: DeviceInfo[] = await response.json();
+      const { data: deviceList } = await apiFetch<DeviceInfo[]>('/api/user/devices', { cache: 'no-cache' });
       
       setDevices(deviceList);
       setError(null);
