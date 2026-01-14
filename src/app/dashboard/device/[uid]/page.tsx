@@ -205,7 +205,7 @@ export default function DeviceDetailsPage() {
                 temperature: (temp === 85 || typeof temp !== 'number') ? null : temp,
                 water_level: (typeof water !== 'number') ? 0 : water,
                 rainfall: (typeof rain !== 'number') ? 0 : rain,
-                humidity: (typeof humidity !== 'number') ? null : humidity,
+                humidity: (typeof humidity !== 'number' || humidity > 100) ? null : humidity,
             }
         }).filter((d): d is ProcessedData => d !== null && !d.timestamp.startsWith('1970-'));
         
@@ -261,7 +261,7 @@ export default function DeviceDetailsPage() {
         if (deviceHistory.length === 0) return null;
 
         const getStats = (key: 'temperature' | 'humidity' | 'water_level' | 'rainfall') => {
-            const values = deviceHistory.map(d => d[key]).filter((v): v is number => v !== null && typeof v === 'number');
+             const values = deviceHistory.map(d => d[key]).filter((v): v is number => v !== null && typeof v === 'number');
             if (values.length === 0) return { avg: null, min: null, max: null };
             
             const sum = values.reduce((a, b) => a + b, 0);
@@ -837,3 +837,5 @@ export default function DeviceDetailsPage() {
     </div>
   );
 }
+
+    
