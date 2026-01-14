@@ -261,7 +261,15 @@ export default function DeviceDetailsPage() {
         if (deviceHistory.length === 0) return null;
 
         const getStats = (key: 'temperature' | 'humidity' | 'water_level' | 'rainfall') => {
-             const values = deviceHistory.map(d => d[key]).filter((v): v is number => v !== null && typeof v === 'number');
+            const values = deviceHistory
+                .map(d => d[key])
+                .filter((v): v is number => {
+                    if (v === null || typeof v !== 'number') return false;
+                    if (key === 'temperature' && v === 85) return false;
+                    if (key === 'humidity' && v > 100) return false;
+                    return true;
+                });
+
             if (values.length === 0) return { avg: null, min: null, max: null };
             
             const sum = values.reduce((a, b) => a + b, 0);
@@ -686,12 +694,12 @@ export default function DeviceDetailsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(10)}>10m</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(30)}>30m</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(60)}>1h</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(6 * 60)}>6h</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(12 * 60)}>12h</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(24 * 60)}>24h</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(6 * 60)}>6 hour</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(12 * 60)}>12 hour</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(24 * 60)}>1 day</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(7 * 24 * 60)}>7 day</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(15 * 24 * 60)}>15 day</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(30 * 24 * 60)}>30 day</Button>
             </div>
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="grid w-full gap-1.5">
