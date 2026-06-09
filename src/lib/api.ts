@@ -1,9 +1,9 @@
 
 const servers = [
-    'https://emspartner.espserver.site',       // Primary
-    'https://emsv2server.maxapi.esp32.site', // Secondary
-    'https://ems-partner-server-1.onrender.com', // Backup 1
-    'https://ems-partner-server-2.onrender.com', // Backup 2
+    'https://emsedit.maxapi.esp32.site',       // Primary
+    'https://emsedit.maxapi.esp32.site', // Secondary
+    'https://emsedit.maxapi.esp32.site', // Backup 1
+    'https://emsedit.maxapi.esp32.site', // Backup 2
 ];
 
 let activeServerIndex = 0;
