@@ -79,3 +79,28 @@ export function formatToBDDate(dateString: string) {
         day: '2-digit'
     });
 }
+
+export function formatToBDTimeWithMonth(dateString: string) {
+  const date = getLocaleDate(dateString);
+  if (!date) return dateString;
+
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Dhaka',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  
+  const parts = formatter.formatToParts(date);
+  const p: Record<string, string> = {};
+  for (const part of parts) {
+      p[part.type] = part.value;
+  }
+  
+  const dayPeriod = (p.dayPeriod || p.ampm || '').toLowerCase();
+  return `${p.day} - ${p.month} - ${p.year} ${p.hour}:${p.minute}:${p.second} ${dayPeriod}`.trim();
+}

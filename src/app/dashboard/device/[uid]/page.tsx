@@ -18,7 +18,7 @@ import html2canvas from 'html2canvas';
 import { useUser } from '@/hooks/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
-import { formatToBDTime, formatToBDDate } from '@/lib/utils';
+import { formatToBDTime, formatToBDDate, formatToBDTimeWithMonth } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
 
 interface DeviceInfo {
@@ -59,14 +59,25 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-2 bg-background/80 backdrop-blur-sm border rounded-lg shadow-lg">
-        <p className="label text-sm font-bold">{label || payload[0].name}</p>
-        {payload.map((pld: any) => (
-          <p key={pld.dataKey || pld.name} style={{ color: pld.fill || pld.color }} className="text-sm">
-            {pld.name.includes('(') ? `${pld.name}: ` : `${pld.name}: `}
-            {pld.value.toFixed(2)}
-            {pld.payload.unit || '%'}
-          </p>
-        ))}
+        <p className="label text-sm font-bold">
+          {typeof label === 'string' && label.includes('T') ? formatToBDTime(label) : (label || payload[0].name)}
+        </p>
+        {payload.map((pld: any) => {
+          let unit = pld.payload.unit;
+          if (!unit) {
+            if (pld.dataKey === 'temperature') unit = ' °C';
+            else if (pld.dataKey === 'humidity') unit = ' %';
+            else if (pld.dataKey === 'water_level') unit = ' Ft';
+            else if (pld.dataKey === 'rainfall') unit = ' mm';
+            else unit = '%';
+          }
+          return (
+            <p key={pld.dataKey || pld.name} style={{ color: pld.fill || pld.color }} className="text-sm">
+              {pld.name.includes('(') ? `${pld.name}: ` : `${pld.name}: `}
+              {pld.value.toFixed(2)}{unit}
+            </p>
+          );
+        })}
       </div>
     );
   }
@@ -566,7 +577,7 @@ export default function DeviceDetailsPage() {
                     <Input id="institution" value={editingInstitution || ''} onChange={(e) => setEditingInstitution(e.target.value)} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
+                    <Label htmlFor="name" className="text-right">Upazila Name</Label>
                     <Input id="name" value={editingName} onChange={(e) => setEditingName(e.target.value)} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
@@ -700,6 +711,9 @@ export default function DeviceDetailsPage() {
                 <Button variant="outline" size="sm" onClick={() => handleQuickFilter(7 * 24 * 60)}>7 day</Button>
                 <Button variant="outline" size="sm" onClick={() => handleQuickFilter(15 * 24 * 60)}>15 day</Button>
                 <Button variant="outline" size="sm" onClick={() => handleQuickFilter(30 * 24 * 60)}>30 day</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(365 * 24 * 60)}>1 year</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(2 * 365 * 24 * 60)}>2 year</Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(3 * 365 * 24 * 60)}>3 year</Button>
             </div>
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="grid w-full gap-1.5">
@@ -817,7 +831,7 @@ export default function DeviceDetailsPage() {
                   deviceHistory.slice().reverse().map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
-                        {formatToBDTime(d.timestamp)}
+                        {formatToBDTimeWithMonth(d.timestamp)}
                       </TableCell>
                       <TableCell className="text-center font-semibold text-amber-500">{d.temperature !== null ? d.temperature.toFixed(1) : 'N/A'}</TableCell>
                       <TableCell className="text-center font-semibold text-purple-500">{d.humidity !== null ? d.humidity.toFixed(1) : 'N/A'}</TableCell>

@@ -68,7 +68,7 @@ export async function apiFetch<T>(
             return { data, response };
 
         } catch (error) {
-            console.error(`Fetch attempt to ${server} failed:`, error);
+            console.warn(`Fetch attempt to ${server} failed:`, error instanceof Error ? error.message : error);
             attempts++;
             if (attempts < servers.length) {
                 rotateServer();
