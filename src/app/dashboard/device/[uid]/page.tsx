@@ -151,6 +151,7 @@ export default function DeviceDetailsPage() {
   const [endDate, setEndDate] = useState('');
   const [appliedStartDate, setAppliedStartDate] = useState('');
   const [appliedEndDate, setAppliedEndDate] = useState('');
+  const [activeFilter, setActiveFilter] = useState<number | null>(null);
 
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
@@ -345,6 +346,7 @@ export default function DeviceDetailsPage() {
   const applyFilters = () => {
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
+    setActiveFilter(null);
   };
 
     const handleQuickFilter = (minutes: number) => {
@@ -358,6 +360,7 @@ export default function DeviceDetailsPage() {
         setEndDate(endStr);
         setAppliedStartDate(startStr);
         setAppliedEndDate(endStr);
+        setActiveFilter(minutes);
     };
 
   const resetFilters = () => {
@@ -365,6 +368,7 @@ export default function DeviceDetailsPage() {
     setEndDate('');
     setAppliedStartDate('');
     setAppliedEndDate('');
+    setActiveFilter(null);
   };
 
   const handleSave = async () => {
@@ -408,27 +412,38 @@ export default function DeviceDetailsPage() {
     if (qrCodeUrl) {
         doc.addImage(qrCodeUrl, 'PNG', pageWidth - pageMargin - 30, currentY, 30, 30);
     }
-    doc.setFontSize(18);
+    doc.setFontSize(22);
+    doc.setTextColor(50, 50, 50); // Dark gray for professional look
     doc.setFont('helvetica', 'bold');
     doc.text('Environmental Monitoring Report', pageMargin, currentY + 5);
-    currentY += 15;
+    
+    currentY += 18;
 
-    doc.setFontSize(12);
+    doc.setTextColor(80, 80, 80); // Lighter gray for info text
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     if (deviceInfo?.institution) {
         doc.text(`Institution: ${deviceInfo.institution}`, pageMargin, currentY);
-        currentY += 6;
+        currentY += 7;
     }
     if (deviceInfo?.name) {
-        doc.text(`Device Name: ${deviceInfo.name}`, pageMargin, currentY);
-        currentY += 6;
+        doc.text(`Upazila Name: ${deviceInfo.name}`, pageMargin, currentY);
+        currentY += 7;
     }
     if (deviceInfo?.location) {
         doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY);
-        currentY += 6;
+        currentY += 7;
     }
     doc.text(`Device UID: ${uid}`, pageMargin, currentY);
+    currentY += 8;
+    
+    // Add a horizontal divider line below device info
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(pageMargin, currentY, pageWidth - pageMargin, currentY);
     currentY += 10;
+    
+    doc.setTextColor(0, 0, 0);
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
@@ -444,8 +459,8 @@ export default function DeviceDetailsPage() {
     const totalRain = deviceHistory.reduce((a, b) => a + b.rainfall, 0);
 
     const summaryBody: (string | number)[][] = [
-        ["Filter Start:", appliedStartDate ? formatToBDTime(new Date(appliedStartDate).toISOString()) : 'All Time'],
-        ["Filter End:", appliedEndDate ? formatToBDTime(new Date(appliedEndDate).toISOString()) : 'All Time'],
+        ["Filter Start:", appliedStartDate ? formatToBDTimeWithMonth(new Date(appliedStartDate).toISOString()) : 'All Time'],
+        ["Filter End:", appliedEndDate ? formatToBDTimeWithMonth(new Date(appliedEndDate).toISOString()) : 'All Time'],
         ["Latitude:", deviceInfo?.latitude ?? 'N/A'],
         ["Longitude:", deviceInfo?.longitude ?? 'N/A'],
         ["Average Temperature:", avgTemp !== null ? `${avgTemp.toFixed(1)} °C` : 'N/A'],
@@ -512,7 +527,7 @@ export default function DeviceDetailsPage() {
     autoTable(doc, {
         head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
         body: deviceHistory.slice().reverse().map(d => [
-            formatToBDTime(d.timestamp),
+            formatToBDTimeWithMonth(d.timestamp),
             d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
             d.humidity !== null ? d.humidity.toFixed(1) : 'N/A',
             d.water_level.toFixed(2),
@@ -705,15 +720,15 @@ export default function DeviceDetailsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(6 * 60)}>6 hour</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(12 * 60)}>12 hour</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(24 * 60)}>1 day</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(7 * 24 * 60)}>7 day</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(15 * 24 * 60)}>15 day</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(30 * 24 * 60)}>30 day</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(365 * 24 * 60)}>1 year</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(2 * 365 * 24 * 60)}>2 year</Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickFilter(3 * 365 * 24 * 60)}>3 year</Button>
+                <Button variant={activeFilter === 6 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(6 * 60)}>6 hour</Button>
+                <Button variant={activeFilter === 12 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(12 * 60)}>12 hour</Button>
+                <Button variant={activeFilter === 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(24 * 60)}>1 day</Button>
+                <Button variant={activeFilter === 7 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(7 * 24 * 60)}>7 day</Button>
+                <Button variant={activeFilter === 15 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(15 * 24 * 60)}>15 day</Button>
+                <Button variant={activeFilter === 30 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(30 * 24 * 60)}>30 day</Button>
+                <Button variant={activeFilter === 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(365 * 24 * 60)}>1 year</Button>
+                <Button variant={activeFilter === 2 * 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(2 * 365 * 24 * 60)}>2 year</Button>
+                <Button variant={activeFilter === 3 * 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(3 * 365 * 24 * 60)}>3 year</Button>
             </div>
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="grid w-full gap-1.5">

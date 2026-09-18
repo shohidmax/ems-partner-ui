@@ -101,6 +101,9 @@ export function formatToBDTimeWithMonth(dateString: string) {
       p[part.type] = part.value;
   }
   
+  let month = p.month;
+  if (month === 'Sep') month = 'Sept';
+  
   const dayPeriod = (p.dayPeriod || p.ampm || '').toLowerCase();
-  return `${p.day} - ${p.month} - ${p.year} ${p.hour}:${p.minute}:${p.second} ${dayPeriod}`.trim();
+  return `${p.day} - ${month} - ${p.year} ${p.hour}:${p.minute}:${p.second} ${dayPeriod}`.trim();
 }
