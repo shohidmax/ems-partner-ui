@@ -52,30 +52,37 @@ export async function apiFetch<T>(
         try {
             const response = await fetch(url, { ...options, headers });
 
-            if (response.status >= 500) { // Server error, try next server
-                throw new Error(`Server error: ${response.status}`);
+            let data = null;
+            if (response.status !== 204) {
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                try {
+                    data = isJson ? await response.json() : await response.text();
+                } catch (e) {
+                    // Ignore parsing errors for empty bodies
+                }
             }
 
-            const isJson = response.headers.get('content-type')?.includes('application/json');
-            const data = isJson ? await response.json() : await response.text();
-
             if (!response.ok) {
-                const errorMessage = (isJson && data.message) ? data.message : (typeof data === 'string' && data) ? data : `Request failed with status ${response.status}`;
+                const errorMessage = (data && typeof data === 'object' && 'message' in data && data.message) 
+                    ? data.message 
+                    : (typeof data === 'string' && data) 
+                        ? data 
+                        : `Request failed with status ${response.status}`;
                 throw new Error(errorMessage);
             }
 
             // Success, return data
             return { data, response };
 
-        } catch (error) {
-            console.warn(`Fetch attempt to ${server} failed:`, error instanceof Error ? error.message : error);
+        } catch (error: any) {
+            console.warn(`Fetch attempt to ${server} failed:`, error.message);
             attempts++;
             if (attempts < servers.length) {
                 rotateServer();
             } else {
-                // All servers failed, reset to primary and throw error
+                // All servers failed, reset to primary and throw the last encountered error
                 activeServerIndex = initialServerIndex; 
-                throw new Error('All servers are currently unavailable. Please try again later.');
+                throw new Error(error.message || 'All servers are currently unavailable. Please try again later.');
             }
         }
     }
