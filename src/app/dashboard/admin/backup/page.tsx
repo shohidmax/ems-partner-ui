@@ -179,7 +179,7 @@ export default function BackupPage() {
 
                         {downloadUrl && jobStatus?.status === 'done' && (
                             <Button asChild className="w-full">
-                                <a href={`${getActiveServer()}${downloadUrl}`} download>
+                                <a href={`${getActiveServer()}${downloadUrl}?token=${token}`} download>
                                     <Download className="mr-2 h-4 w-4" />
                                     Download Backup
                                 </a>

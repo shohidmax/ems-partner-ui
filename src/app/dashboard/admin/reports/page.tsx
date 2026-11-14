@@ -33,9 +33,9 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
         <p className="label text-sm font-bold">{label}</p>
         {payload.map((pld: any) => (
           <p key={pld.dataKey} style={{ color: pld.fill }} className="text-sm">
-            {pld.dataKey === 'avgTemp' ? `${pld.name}: ${pld.value.toFixed(2)}°C` :
-             pld.dataKey === 'avgRain' ? `${pld.name}: ${pld.value.toFixed(2)}mm` :
-             `${pld.name}: ${pld.value.toLocaleString()}`}
+            {pld.dataKey === 'avgTemp' ? `${pld.name}: ${(pld.value ?? 0).toFixed(2)}°C` :
+             pld.dataKey === 'avgRain' ? `${pld.name}: ${(pld.value ?? 0).toFixed(2)}mm` :
+             `${pld.name}: ${(pld.value ?? 0).toLocaleString()}`}
           </p>
         ))}
       </div>
@@ -129,10 +129,10 @@ export default function AdminReportsPage() {
     autoTable(doc, {
       head: [['Period', 'Avg Temp (°C)', 'Avg Rain (mm)', 'Data Points']],
       body: data.map(d => [
-        d.date || d.month || d.year?.toString(),
-        d.avgTemp.toFixed(2),
-        d.avgRain.toFixed(2),
-        d.count.toLocaleString()
+        d.date || d.month || (d.year != null ? d.year.toString() : '-'),
+        d.avgTemp != null ? d.avgTemp.toFixed(2) : '0.00',
+        d.avgRain != null ? d.avgRain.toFixed(2) : '0.00',
+        d.count != null ? d.count.toLocaleString() : '0'
       ]),
       startY: currentY,
       theme: 'grid',

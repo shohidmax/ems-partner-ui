@@ -39,7 +39,9 @@ interface DeviceDataPoint {
     environment?: { temp?: number, hum?: number };
     rain?: { count?: number, mm?: number };
     dateTime?: string; 
+    receivedAt?: string | Date;
     temperature?: number;
+    humidity?: number;
     water_level?: number;
     rainfall?: number;
 }
@@ -182,6 +184,7 @@ export default function DeviceDetailsPage() {
         setEndDate(endStr);
         setAppliedStartDate(startStr);
         setAppliedEndDate(endStr);
+        setActiveFilter(12 * 60);
     }, []);
 
   const fetchDeviceHistory = useCallback(async (start?: string, end?: string) => {
@@ -194,6 +197,9 @@ export default function DeviceDetailsPage() {
         const body: any = { uid };
         if (start) body.start = start;
         if (end) body.end = end;
+        if (!start && !end) {
+            body.limit = 5000;
+        }
         
         const { data: jsonData } = await apiFetch<DeviceDataPoint[]>(url, { 
             method: 'POST',
@@ -202,13 +208,13 @@ export default function DeviceDetailsPage() {
         });
 
         const processedData = jsonData.map((d): ProcessedData | null => {
-            const timeString = d.dateTime || d.timestamp;
+            const timeString = d.dateTime || d.timestamp || (d.receivedAt ? new Date(d.receivedAt).toISOString() : null);
             if (!timeString) return null;
 
             const temp = d.environment?.temp ?? d.temperature;
             const water = d.pssensor?.depth_ft ?? d.water_level;
             const rain = d.rain?.mm ?? d.rainfall;
-            const humidity = d.environment?.hum ?? null;
+            const humidity = d.environment?.hum ?? d.humidity ?? null;
             
             return {
                 uid: d.uid,
@@ -221,7 +227,7 @@ export default function DeviceDetailsPage() {
             }
         }).filter((d): d is ProcessedData => d !== null && !d.timestamp.startsWith('1970-'));
         
-        setDeviceHistory(processedData.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+        setDeviceHistory(processedData.sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0)));
 
     } catch (e: any) {
         setError(e.message || 'Failed to fetch device data. The server might be offline. Please try again later.');
@@ -260,9 +266,56 @@ export default function DeviceDetailsPage() {
   useEffect(() => {
     if (token && uid) {
       fetchDeviceInfo();
+    }
+  }, [uid, token, fetchDeviceInfo]);
+
+  useEffect(() => {
+    if (token && uid) {
       fetchDeviceHistory(appliedStartDate, appliedEndDate);
     }
-  }, [uid, token, fetchDeviceInfo, fetchDeviceHistory, appliedStartDate, appliedEndDate]);
+  }, [uid, token, fetchDeviceHistory, appliedStartDate, appliedEndDate]);
+
+  const [tablePage, setTablePage] = useState(1);
+  const rowsPerPage = 50;
+  const totalPages = Math.max(1, Math.ceil(deviceHistory.length / rowsPerPage));
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [deviceHistory]);
+
+  const paginatedData = useMemo(() => {
+    const reversed = [...deviceHistory].reverse();
+    const startIndex = (tablePage - 1) * rowsPerPage;
+    return reversed.slice(startIndex, startIndex + rowsPerPage);
+  }, [deviceHistory, tablePage]);
+
+  const chartData = useMemo(() => {
+    if (deviceHistory.length <= 1500) return deviceHistory;
+    const step = Math.ceil(deviceHistory.length / 1500);
+    const sampled: ProcessedData[] = [];
+    for (let i = 0; i < deviceHistory.length; i += step) {
+      sampled.push(deviceHistory[i]);
+    }
+    if (sampled.length > 0 && sampled[sampled.length - 1] !== deviceHistory[deviceHistory.length - 1]) {
+      sampled.push(deviceHistory[deviceHistory.length - 1]);
+    }
+    return sampled;
+  }, [deviceHistory]);
+
+  const downloadCSV = () => {
+    if (deviceHistory.length === 0) return;
+    const headers = ['UID,Timestamp,Temperature (°C),Humidity (%),Water Level (ft),Rainfall (mm)'];
+    const rows = deviceHistory.map(d => 
+      `"${d.uid}","${d.timestamp}",${d.temperature ?? ''},${d.humidity ?? ''},${d.water_level},${d.rainfall}`
+    );
+    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers, ...rows].join('\n'));
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `device_${uid}_data_${appliedStartDate || 'start'}_to_${appliedEndDate || 'end'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const latestData = useMemo(() => {
     if (deviceHistory.length === 0) return null;
@@ -344,30 +397,35 @@ export default function DeviceDetailsPage() {
   }, []);
   
   const applyFilters = () => {
-    setAppliedStartDate(startDate);
-    setAppliedEndDate(endDate);
     setActiveFilter(null);
+    if (appliedStartDate === startDate && appliedEndDate === endDate) {
+      fetchDeviceHistory(startDate, endDate);
+    } else {
+      setAppliedStartDate(startDate);
+      setAppliedEndDate(endDate);
+    }
   };
 
-    const handleQuickFilter = (minutes: number) => {
-        const now = new Date();
-        const start = new Date(now.getTime() - minutes * 60 * 1000);
+  const handleQuickFilter = (minutes: number) => {
+    const now = new Date();
+    const start = new Date(now.getTime() - minutes * 60 * 1000);
 
-        const endStr = toLocalISOString(now);
-        const startStr = toLocalISOString(start);
-        
-        setStartDate(startStr);
-        setEndDate(endStr);
-        setAppliedStartDate(startStr);
-        setAppliedEndDate(endStr);
-        setActiveFilter(minutes);
-    };
+    const endStr = toLocalISOString(now);
+    const startStr = toLocalISOString(start);
+    
+    setStartDate(startStr);
+    setEndDate(endStr);
+    setActiveFilter(minutes);
+    if (appliedStartDate === startStr && appliedEndDate === endStr) {
+      fetchDeviceHistory(startStr, endStr);
+    } else {
+      setAppliedStartDate(startStr);
+      setAppliedEndDate(endStr);
+    }
+  };
 
   const resetFilters = () => {
-    setStartDate('');
-    setEndDate('');
-    setAppliedStartDate('');
-    setAppliedEndDate('');
+    setDefaultTimeRange();
     setActiveFilter(null);
   };
 
@@ -459,8 +517,8 @@ export default function DeviceDetailsPage() {
     const totalRain = deviceHistory.reduce((a, b) => a + b.rainfall, 0);
 
     const summaryBody: (string | number)[][] = [
-        ["Filter Start:", appliedStartDate ? formatToBDTimeWithMonth(new Date(appliedStartDate).toISOString()) : 'All Time'],
-        ["Filter End:", appliedEndDate ? formatToBDTimeWithMonth(new Date(appliedEndDate).toISOString()) : 'All Time'],
+        ["Filter Start:", (appliedStartDate && !isNaN(new Date(appliedStartDate).getTime())) ? formatToBDTimeWithMonth(new Date(appliedStartDate).toISOString()) : 'All Time'],
+        ["Filter End:", (appliedEndDate && !isNaN(new Date(appliedEndDate).getTime())) ? formatToBDTimeWithMonth(new Date(appliedEndDate).toISOString()) : 'All Time'],
         ["Latitude:", deviceInfo?.latitude ?? 'N/A'],
         ["Longitude:", deviceInfo?.longitude ?? 'N/A'],
         ["Average Temperature:", avgTemp !== null ? `${avgTemp.toFixed(1)} °C` : 'N/A'],
@@ -521,18 +579,27 @@ export default function DeviceDetailsPage() {
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Filtered Data Points', pageMargin, currentY);
-    currentY += 8;
-
-    autoTable(doc, {
-        head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
-        body: deviceHistory.slice().reverse().map(d => [
+    const pdfTableRows = (deviceHistory.length > 500 ? deviceHistory.slice(-500) : deviceHistory)
+        .slice().reverse().map(d => [
             formatToBDTimeWithMonth(d.timestamp),
             d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
             d.humidity !== null ? d.humidity.toFixed(1) : 'N/A',
             d.water_level.toFixed(2),
             d.rainfall.toFixed(2)
-        ]),
+        ]);
+
+    doc.text(
+        deviceHistory.length > 500 
+            ? `Filtered Data Points (Showing Latest 500 of ${deviceHistory.length.toLocaleString()})`
+            : `Filtered Data Points (${deviceHistory.length.toLocaleString()})`, 
+        pageMargin, 
+        currentY
+    );
+    currentY += 8;
+
+    autoTable(doc, {
+        head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
+        body: pdfTableRows,
         startY: currentY,
         theme: 'grid',
         headStyles: { fillColor: [230, 230, 230], textColor: 20 },
@@ -733,14 +800,17 @@ export default function DeviceDetailsPage() {
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="grid w-full gap-1.5">
                 <label htmlFor="start-date" className="text-sm font-medium">Start Date/Time</label>
-                <Input id="start-date" type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <Input id="start-date" type="datetime-local" value={startDate} onChange={e => { setStartDate(e.target.value); setActiveFilter(null); }} />
             </div>
             <div className="grid w-full gap-1.5">
                 <label htmlFor="end-date" className="text-sm font-medium">End Date/Time</label>
-                <Input id="end-date" type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                <Input id="end-date" type="datetime-local" value={endDate} onChange={e => { setEndDate(e.target.value); setActiveFilter(null); }} />
             </div>
             <div className="flex gap-2 w-full md:w-auto">
-              <Button onClick={applyFilters} disabled={loading}><Filter className="mr-2 h-4 w-4"/>Filter</Button>
+              <Button onClick={applyFilters} disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Filter className="mr-2 h-4 w-4"/>}
+                Filter
+              </Button>
               <Button onClick={resetFilters} variant="ghost" className="w-full" disabled={loading}>Reset</Button>
             </div>
           </div>
@@ -757,11 +827,33 @@ export default function DeviceDetailsPage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <Card className="lg:col-span-3 light" id="line-chart-container">
-          <CardHeader><CardTitle>Sensor History</CardTitle></CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle>Sensor History</CardTitle>
+              <CardDescription className="text-xs mt-1">
+                {deviceHistory.length > 0 ? (
+                  <span>
+                    Showing <strong>{deviceHistory.length.toLocaleString()}</strong> data points ({formatToBDDate(deviceHistory[0].timestamp)} to {formatToBDDate(deviceHistory[deviceHistory.length - 1].timestamp)})
+                    {appliedStartDate && appliedEndDate && (
+                      <span className="text-muted-foreground ml-2">
+                        • Filter: {formatToBDDate(appliedStartDate)} to {formatToBDDate(appliedEndDate)}
+                      </span>
+                    )}
+                  </span>
+                ) : 'No data in selected range'}
+              </CardDescription>
+            </div>
+            {deviceHistory.length > 0 && (
+              <Button variant="outline" size="sm" onClick={downloadCSV}>
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                CSV
+              </Button>
+            )}
+          </CardHeader>
           <CardContent className="h-[400px] p-0">
              {loading ? <div className="h-full flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={deviceHistory}>
+                <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="dateTime" tickFormatter={(ts) => formatToBDTime(ts).split(',')[0] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C / %', angle: -90, position: 'insideLeft' }} />
@@ -828,9 +920,41 @@ export default function DeviceDetailsPage() {
       )}
 
       <Card>
-        <CardHeader><CardTitle>Filtered Data Points</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div>
+              <CardTitle>Filtered Data Points</CardTitle>
+              <CardDescription>
+                {deviceHistory.length > 0 
+                  ? `Total ${deviceHistory.length.toLocaleString()} records found in selected range` 
+                  : 'No records found'}
+              </CardDescription>
+            </div>
+            {deviceHistory.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setTablePage(p => Math.max(1, p - 1))}
+                  disabled={tablePage === 1}
+                >
+                  Previous
+                </Button>
+                <span>Page {tablePage} of {totalPages}</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setTablePage(p => Math.min(totalPages, p + 1))}
+                  disabled={tablePage >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
         <CardContent>
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -842,8 +966,8 @@ export default function DeviceDetailsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {deviceHistory.length > 0 ? (
-                  deviceHistory.slice().reverse().map((d, i) => (
+                {paginatedData.length > 0 ? (
+                  paginatedData.map((d, i) => (
                     <TableRow key={i}>
                       <TableCell>
                         {formatToBDTimeWithMonth(d.timestamp)}
@@ -865,10 +989,14 @@ export default function DeviceDetailsPage() {
         </CardContent>
       </Card>
 
-      <div className="text-center">
+      <div className="flex justify-center gap-4 flex-wrap">
         <Button onClick={downloadPDF} disabled={isPdfLoading || deviceHistory.length === 0}>
           {isPdfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {isPdfLoading ? 'Generating Report...' : 'Download PDF Report'}
+        </Button>
+        <Button variant="outline" onClick={downloadCSV} disabled={deviceHistory.length === 0}>
+          <Download className="mr-2 h-4 w-4" />
+          Download CSV (All {deviceHistory.length.toLocaleString()} Records)
         </Button>
       </div>
     </div>

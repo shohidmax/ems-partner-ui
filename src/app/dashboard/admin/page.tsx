@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useUser } from '@/hooks/use-user';
 import { Badge } from '@/components/ui/badge';
 import { apiFetch, getActiveServer } from '@/lib/api';
+import BangladeshDeviceMap, { DeviceMapData } from '@/components/bangladesh-device-map';
 
 interface AdminStats {
   totalDevices: number;
@@ -21,7 +22,9 @@ interface AdminStats {
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [devices, setDevices] = useState<DeviceMapData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [devicesLoading, setDevicesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useUser();
   const [activeServer, setActiveServer] = useState('');
@@ -29,22 +32,28 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     setActiveServer(getActiveServer());
 
-    const fetchStats = async () => {
+    const fetchStatsAndDevices = async () => {
       if (!token) {
         setLoading(false);
+        setDevicesLoading(false);
         setError("Authentication token not available.");
         return;
       }
       try {
-        const { data } = await apiFetch<AdminStats>('/api/admin/stats');
-        setStats(data);
+        const [statsRes, devicesRes] = await Promise.all([
+          apiFetch<AdminStats>('/api/admin/stats'),
+          apiFetch<DeviceMapData[]>('/api/admin/devices')
+        ]);
+        setStats(statsRes.data);
+        setDevices(devicesRes.data || []);
       } catch (e: any) {
         setError(e.message || 'An unexpected error occurred.');
       } finally {
         setLoading(false);
+        setDevicesLoading(false);
       }
     };
-    fetchStats();
+    fetchStatsAndDevices();
   }, [token]);
 
   const renderSkeletons = () => (
@@ -174,6 +183,17 @@ export default function AdminDashboardPage() {
                 </CardContent>
             </Card>
         </div>
+
+        {/* Bangladesh Device Geo Map (Editable for Admin) */}
+        <BangladeshDeviceMap 
+          devices={devices} 
+          isAdmin={true} 
+          onDeviceUpdated={(updated) => {
+            setDevices(prev => prev.map(d => d.uid === updated.uid ? { ...d, ...updated } : d));
+          }}
+          title="Bangladesh Geo Monitoring Map (Editable)"
+          description="Click any station to view live telemetry data or toggle 'Editable' to drag and adjust coordinates"
+        />
     </div>
   );
 }

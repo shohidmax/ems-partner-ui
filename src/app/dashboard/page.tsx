@@ -10,11 +10,15 @@ import { TriangleAlert, List, BarChart, Thermometer, Droplets, CloudRain, Wind }
 import { useUser } from '@/hooks/use-user';
 import { formatToBDDate } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
+import BangladeshDeviceMap from '@/components/bangladesh-device-map';
 
 interface DeviceInfo {
   uid: string;
   name: string | null;
   location: string | null;
+  institution?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: 'online' | 'offline' | 'unknown';
   lastSeen: string | null;
   data?: {
@@ -230,6 +234,14 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </div>
+
+        {/* Bangladesh Device Geo Map for User Devices */}
+        <BangladeshDeviceMap 
+          devices={devices} 
+          isAdmin={false} 
+          title="My Monitoring Stations Map (Bangladesh)"
+          description="Geographic location and live telemetry for your assigned devices"
+        />
 
     </div>
   );

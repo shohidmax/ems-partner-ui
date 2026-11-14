@@ -39,7 +39,7 @@ export function ResetPasswordForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       try {
-        const { data: result } = await apiFetch(API_PATH, {
+        const { data: result } = await apiFetch<{ message?: string }>(API_PATH, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(values),
@@ -47,7 +47,7 @@ export function ResetPasswordForm() {
 
         toast({
           title: 'Password Reset Email Sent',
-          description: result.message,
+          description: result?.message || 'Password reset link sent.',
         });
         form.reset();
       } catch (error: any) {

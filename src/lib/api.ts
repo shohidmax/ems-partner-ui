@@ -1,9 +1,9 @@
 
 const servers = [
-    'https://emsedit.maxapi.esp32.site',       // Primary
-    'https://emsedit.maxapi.esp32.site', // Secondary
-    'https://emsedit.maxapi.esp32.site', // Backup 1
-    'https://emsedit.maxapi.esp32.site', // Backup 2
+    'http://localhost:3002', // Primary
+    'http://localhost:3002', // Secondary
+    'http://localhost:3002', // Backup 1
+    'http://localhost:3002', // Backup 2
 ];
 
 let activeServerIndex = 0;
