@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { TriangleAlert, Edit, Save, X, User, Search, Copy, Pin, ArrowRight, MapPin } from 'lucide-react';
+import { TriangleAlert, Edit, Save, X, User, Search, Copy, Pin, ArrowRight, MapPin, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -160,89 +160,89 @@ export default function AdminDeviceManagerPage() {
   return (
     <div className="space-y-6">
         <Dialog open={!!editingDevice} onOpenChange={(isOpen) => !isOpen && setEditingDevice(null)}>
-            <DialogContent>
+            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
                  <DialogHeader>
                     <DialogTitle>Edit Device: {editingDevice?.name || editingDevice?.uid}</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="institution" className="text-right">Institution</Label>
-                        <Input id="institution" value={editingDevice?.institution || ''} onChange={(e) => setEditingDevice(d => d ? {...d, institution: e.target.value} : null)} className="col-span-3" />
+                <div className="space-y-4 py-4">
+                    <div className="flex flex-col sm:grid sm:grid-cols-4 sm:items-center gap-1.5 sm:gap-4">
+                        <Label htmlFor="institution" className="text-left sm:text-right text-xs sm:text-sm font-medium">Institution</Label>
+                        <Input id="institution" value={editingDevice?.institution || ''} onChange={(e) => setEditingDevice(d => d ? {...d, institution: e.target.value} : null)} className="sm:col-span-3" />
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">Name</Label>
-                        <Input id="name" value={editingDevice?.name || ''} onChange={(e) => setEditingDevice(d => d ? {...d, name: e.target.value} : null)} className="col-span-3" />
+                     <div className="flex flex-col sm:grid sm:grid-cols-4 sm:items-center gap-1.5 sm:gap-4">
+                        <Label htmlFor="name" className="text-left sm:text-right text-xs sm:text-sm font-medium">Name</Label>
+                        <Input id="name" value={editingDevice?.name || ''} onChange={(e) => setEditingDevice(d => d ? {...d, name: e.target.value} : null)} className="sm:col-span-3" />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="location" className="text-right">Location</Label>
-                        <Input id="location" value={editingDevice?.location || ''} onChange={(e) => setEditingDevice(d => d ? {...d, location: e.target.value} : null)} className="col-span-3" />
+                    <div className="flex flex-col sm:grid sm:grid-cols-4 sm:items-center gap-1.5 sm:gap-4">
+                        <Label htmlFor="location" className="text-left sm:text-right text-xs sm:text-sm font-medium">Location</Label>
+                        <Input id="location" value={editingDevice?.location || ''} onChange={(e) => setEditingDevice(d => d ? {...d, location: e.target.value} : null)} className="sm:col-span-3" />
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="latitude" className="text-right">Latitude</Label>
-                        <Input id="latitude" type="number" value={editingDevice?.latitude || ''} onChange={(e) => setEditingDevice(d => d ? {...d, latitude: e.target.value === '' ? null : parseFloat(e.target.value)} : null)} className="col-span-3" />
+                     <div className="flex flex-col sm:grid sm:grid-cols-4 sm:items-center gap-1.5 sm:gap-4">
+                        <Label htmlFor="latitude" className="text-left sm:text-right text-xs sm:text-sm font-medium">Latitude</Label>
+                        <Input id="latitude" type="number" value={editingDevice?.latitude ?? ''} onChange={(e) => setEditingDevice(d => d ? {...d, latitude: e.target.value === '' ? null : parseFloat(e.target.value)} : null)} className="sm:col-span-3" />
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="longitude" className="text-right">Longitude</Label>
-                        <Input id="longitude" type="number" value={editingDevice?.longitude || ''} onChange={(e) => setEditingDevice(d => d ? {...d, longitude: e.target.value === '' ? null : parseFloat(e.target.value)} : null)} className="col-span-3" />
+                     <div className="flex flex-col sm:grid sm:grid-cols-4 sm:items-center gap-1.5 sm:gap-4">
+                        <Label htmlFor="longitude" className="text-left sm:text-right text-xs sm:text-sm font-medium">Longitude</Label>
+                        <Input id="longitude" type="number" value={editingDevice?.longitude ?? ''} onChange={(e) => setEditingDevice(d => d ? {...d, longitude: e.target.value === '' ? null : parseFloat(e.target.value)} : null)} className="sm:col-span-3" />
                     </div>
                 </div>
-                 <DialogFooter>
+                 <DialogFooter className="gap-2 sm:gap-0">
                     <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                     <Button onClick={handleSave} disabled={isSaving}>
-                        {isSaving && <X className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Changes
                     </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
         
-        <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h1 className="text-3xl font-bold">Device Management</h1>
-                <p className="text-muted-foreground">View, edit, and manage all registered devices and their owners.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Device Management</h1>
+                <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">View, edit, and manage all registered devices and their owners.</p>
             </div>
-             <div className="relative w-full md:max-w-xs">
+             <div className="relative w-full sm:max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                     placeholder="Search devices..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 w-full"
                 />
             </div>
         </div>
 
         <TooltipProvider>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredDevices.map(device => (
                   <Link key={device.uid} href={`/dashboard/device/${device.uid}`} className="block group">
-                    <Card className="h-full flex flex-col transition-all duration-300 ease-in-out group-hover:shadow-primary/20 group-hover:shadow-lg group-hover:-translate-y-1">
-                        <CardHeader className="relative pb-4">
-                             <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <Card className="h-full flex flex-col transition-all duration-300 ease-in-out group-hover:shadow-primary/20 group-hover:shadow-lg group-hover:-translate-y-1 overflow-hidden">
+                        <CardHeader className="relative pb-3 sm:pb-4 p-4 sm:p-6">
+                             <div className="absolute top-3 sm:top-4 right-3 sm:right-4 flex items-center gap-1.5">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleEdit(device);}}>
-                                            <Edit className="h-4 w-4" />
+                                            <Edit className="h-3.5 w-3.5" />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent><p>Edit Device</p></TooltipContent>
                                 </Tooltip>
-                                <div className={cn('flex items-center gap-1.5 text-xs font-semibold', 
+                                <div className={cn('flex items-center gap-1 text-[11px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-muted/40', 
                                     device.status === 'online' ? 'text-green-500' : 'text-muted-foreground'
                                 )}>
-                                    <span className={cn('h-2 w-2 rounded-full', 
-                                        device.status === 'online' ? 'bg-green-500' : 'bg-muted-foreground'
+                                    <span className={cn('h-1.5 w-1.5 rounded-full', 
+                                        device.status === 'online' ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'
                                     )}></span>
                                     {device.status}
                                 </div>
                             </div>
 
-                            <CardTitle className="text-xl font-bold text-primary pr-20">{device.name || 'Unnamed Device'}</CardTitle>
+                            <CardTitle className="text-lg sm:text-xl font-bold text-primary pr-24 truncate">{device.name || 'Unnamed Device'}</CardTitle>
                              <div className="flex items-center gap-2">
-                                <CardDescription className="font-mono text-xs">{device.uid}</CardDescription>
+                                <CardDescription className="font-mono text-xs truncate max-w-[170px] sm:max-w-none">{device.uid}</CardDescription>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                    <button onClick={(e) => handleCopy(e, device.uid)} className='text-muted-foreground hover:text-foreground'>
+                                    <button onClick={(e) => handleCopy(e, device.uid)} className='text-muted-foreground hover:text-foreground p-1'>
                                         <Copy className="h-3 w-3" />
                                     </button>
                                     </TooltipTrigger>
@@ -250,13 +250,13 @@ export default function AdminDeviceManagerPage() {
                                 </Tooltip>
                             </div>
                             {device.location && (
-                                <div className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
-                                    <MapPin className="h-4 w-4" />
+                                <div className="flex items-center gap-1.5 pt-1 text-xs sm:text-sm text-muted-foreground">
+                                    <MapPin className="h-3.5 w-3.5 shrink-0" />
                                     <span className="truncate">{device.location}</span>
                                      {device.latitude && device.longitude && (
                                         <Button
                                             variant="link"
-                                            className="p-0 h-auto text-xs"
+                                            className="p-0 h-auto text-xs shrink-0"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 window.open(`https://www.google.com/maps?q=${device.latitude},${device.longitude}`, '_blank');
@@ -268,16 +268,16 @@ export default function AdminDeviceManagerPage() {
                                 </div>
                             )}
                         </CardHeader>
-                        <CardContent className="space-y-3 flex-1 flex flex-col justify-end">
+                        <CardContent className="space-y-3 flex-1 flex flex-col justify-end p-4 sm:p-6 pt-0">
                              <div>
-                                <h4 className="text-sm font-medium mb-2">Owners</h4>
+                                <h4 className="text-xs sm:text-sm font-medium mb-1.5">Owners</h4>
                                 {device.owners.length > 0 ? (
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
                                         {device.owners.map((owner, index) => (
                                             <Tooltip key={`${owner._id}-${index}`}>
                                                 <TooltipTrigger asChild>
-                                                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md text-xs">
-                                                        <User className="h-3 w-3" />
+                                                    <div className="flex items-center gap-2 p-1.5 bg-muted/50 rounded-md text-xs">
+                                                        <User className="h-3 w-3 shrink-0" />
                                                         <span className="flex-1 truncate">{owner.name}</span>
                                                     </div>
                                                 </TooltipTrigger>
@@ -293,12 +293,12 @@ export default function AdminDeviceManagerPage() {
                                 )}
                             </div>
                         </CardContent>
-                         <div className="p-4 pt-4 border-t flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground">
+                         <div className="p-3 sm:p-4 border-t flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="truncate pr-2">
                                 {device.lastSeen ? `Last seen: ${formatToBDTime(device.lastSeen)}` : 'Never seen'}
-                            </p>
-                             <Button variant="outline" size="icon" className="h-8 w-8">
-                                <ArrowRight className="h-4 w-4" />
+                            </span>
+                             <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 shrink-0">
+                                <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                          </div>
                     </Card>

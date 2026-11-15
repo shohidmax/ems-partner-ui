@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
-import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin, Wind, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin, Wind, ArrowUp, ArrowDown, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { formatToBDTime, formatToBDDate, formatToBDTimeWithMonth } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
+import { DeviceAiChat } from '@/components/device-ai-chat';
 
 interface DeviceInfo {
   uid: string;
@@ -157,6 +158,7 @@ export default function DeviceDetailsPage() {
 
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingName, setEditingName] = useState('');
@@ -688,9 +690,18 @@ export default function DeviceDetailsPage() {
     </Dialog>
 
 
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-3">
         <Button onClick={() => window.history.back()} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+            <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => setIsAiChatOpen(true)}
+                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md flex items-center gap-1.5"
+            >
+                <Sparkles className="h-4 w-4 text-amber-200" />
+                <span className="font-semibold">Ask AI</span>
+            </Button>
             {isAdmin && (
                 <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
                     <Edit className="mr-2 h-4 w-4" /> Edit Device
@@ -807,11 +818,11 @@ export default function DeviceDetailsPage() {
                 <Input id="end-date" type="datetime-local" value={endDate} onChange={e => { setEndDate(e.target.value); setActiveFilter(null); }} />
             </div>
             <div className="flex gap-2 w-full md:w-auto">
-              <Button onClick={applyFilters} disabled={loading}>
+              <Button onClick={applyFilters} disabled={loading} className="flex-1 md:flex-none">
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Filter className="mr-2 h-4 w-4"/>}
                 Filter
               </Button>
-              <Button onClick={resetFilters} variant="ghost" className="w-full" disabled={loading}>Reset</Button>
+              <Button onClick={resetFilters} variant="ghost" className="flex-1 md:flex-none" disabled={loading}>Reset</Button>
             </div>
           </div>
         </CardContent>
@@ -953,8 +964,8 @@ export default function DeviceDetailsPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="max-h-[500px] overflow-y-auto">
+        <CardContent className="p-2 sm:p-6">
+          <div className="max-h-[500px] overflow-y-auto overflow-x-auto w-full">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -999,6 +1010,14 @@ export default function DeviceDetailsPage() {
           Download CSV (All {deviceHistory.length.toLocaleString()} Records)
         </Button>
       </div>
+
+      <DeviceAiChat 
+        uid={uid} 
+        deviceName={deviceInfo?.name} 
+        location={deviceInfo?.location} 
+        open={isAiChatOpen} 
+        onOpenChange={setIsAiChatOpen} 
+      />
     </div>
   );
 }

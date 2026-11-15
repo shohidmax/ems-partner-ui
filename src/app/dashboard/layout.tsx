@@ -206,7 +206,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 p-4 md:p-6 container mx-auto">
+          <main className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-x-hidden container mx-auto">
             {children}
           </main>
         </SidebarInset>

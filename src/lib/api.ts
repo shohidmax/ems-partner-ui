@@ -1,10 +1,10 @@
 
-const servers = [
-    'https://emsedit.maxapi.esp32.site', // Primary
-    'https://emsedit.maxapi.esp32.site', // Secondary
-    'https://emsedit.maxapi.esp32.site', // Backup 1
-    'https://emsedit.maxapi.esp32.site', // Backup 2
-];
+const getServers = () => {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return ['http://localhost:3002', 'https://emsedit.maxapi.esp32.site'];
+    }
+    return ['https://emsedit.maxapi.esp32.site', 'http://localhost:3002'];
+};
 
 let activeServerIndex = 0;
 let apiAuthToken: string | null = null;
@@ -18,18 +18,21 @@ export const clearApiToken = () => {
 };
 
 export const getActiveServer = () => {
-    return servers[activeServerIndex];
+    const s = getServers();
+    return s[activeServerIndex % s.length];
 };
 
 export const setActiveServer = (index: number) => {
-    if (index >= 0 && index < servers.length) {
+    const s = getServers();
+    if (index >= 0 && index < s.length) {
         activeServerIndex = index;
     }
 }
 
 const rotateServer = () => {
-    activeServerIndex = (activeServerIndex + 1) % servers.length;
-    console.warn(`Rotated to next server: ${servers[activeServerIndex]}`);
+    const s = getServers();
+    activeServerIndex = (activeServerIndex + 1) % s.length;
+    console.warn(`Rotated to next server: ${getActiveServer()}`);
 };
 
 export async function apiFetch<T>(
@@ -37,10 +40,11 @@ export async function apiFetch<T>(
     options: RequestInit = {},
     skipAuth: boolean = false
 ): Promise<{ data: T, response: Response }> {
+    const s = getServers();
     const initialServerIndex = activeServerIndex;
     let attempts = 0;
 
-    while (attempts < servers.length) {
+    while (attempts < s.length) {
         const server = getActiveServer();
         const url = `${server}${path}`;
         
@@ -77,7 +81,7 @@ export async function apiFetch<T>(
         } catch (error: any) {
             console.warn(`Fetch attempt to ${server} failed:`, error.message);
             attempts++;
-            if (attempts < servers.length) {
+            if (attempts < s.length) {
                 rotateServer();
             } else {
                 // All servers failed, reset to primary and throw the last encountered error

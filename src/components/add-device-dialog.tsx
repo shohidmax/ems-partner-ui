@@ -51,26 +51,26 @@ export function AddDeviceDialog({ open, onOpenChange, onDeviceAdded }: AddDevice
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="max-w-[95vw] sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Add a New Device</DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-xs sm:text-sm">
                         Enter the unique identifier (UID) of the device you want to add to your account.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="uid" className="text-right">Device UID</Label>
+                <div className="py-3 sm:py-4">
+                    <div className="flex flex-col sm:grid sm:grid-cols-4 sm:items-center gap-1.5 sm:gap-4">
+                        <Label htmlFor="uid" className="text-left sm:text-right text-xs sm:text-sm font-medium">Device UID</Label>
                         <Input 
                             id="uid" 
                             value={uid}
                             onChange={(e) => setUid(e.target.value)}
-                            className="col-span-3" 
+                            className="sm:col-span-3" 
                             placeholder="e.g., 14:2B:2F:DA:F2:50"
                         />
                     </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0">
                     <DialogClose asChild>
                         <Button variant="ghost">Cancel</Button>
                     </DialogClose>
