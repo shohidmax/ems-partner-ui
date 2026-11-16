@@ -325,9 +325,9 @@ export default function DeviceDetailsPage() {
 
   const displayHistory = useMemo(() => {
     if (sortOrder === 'asc') {
-      return [...deviceHistory].sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0));
+      return deviceHistory;
     }
-    return [...deviceHistory].sort((a, b) => (new Date(b.timestamp).getTime() || 0) - (new Date(a.timestamp).getTime() || 0));
+    return [...deviceHistory].reverse();
   }, [deviceHistory, sortOrder]);
 
   const paginatedData = useMemo(() => {
@@ -375,32 +375,69 @@ export default function DeviceDetailsPage() {
     const summaryStats = useMemo(() => {
         if (deviceHistory.length === 0) return null;
 
-        const getStats = (key: 'temperature' | 'humidity' | 'water_level' | 'rainfall') => {
-            const values = deviceHistory
-                .map(d => d[key])
-                .filter((v): v is number => {
-                    if (v === null || typeof v !== 'number') return false;
-                    if (key === 'temperature' && v === 85) return false;
-                    if (key === 'humidity' && v > 100) return false;
-                    return true;
-                });
+        let tempSum = 0, tempCount = 0, tempMin = Infinity, tempMax = -Infinity;
+        let humSum = 0, humCount = 0, humMin = Infinity, humMax = -Infinity;
+        let waterSum = 0, waterCount = 0, waterMin = Infinity, waterMax = -Infinity;
+        let rainSum = 0, rainCount = 0, rainMin = Infinity, rainMax = -Infinity;
 
-            if (values.length === 0) return { avg: null, min: null, max: null };
+        for (let i = 0; i < deviceHistory.length; i++) {
+            const d = deviceHistory[i];
             
-            const sum = values.reduce((a, b) => a + b, 0);
-            const avg = sum / values.length;
-            const min = Math.min(...values);
-            const max = Math.max(...values);
-            return { avg, min, max };
-        };
-        
-        const totalRainfall = deviceHistory.reduce((sum, d) => sum + d.rainfall, 0);
+            const t = d.temperature;
+            if (t !== null && typeof t === 'number' && t !== 85) {
+                tempSum += t;
+                tempCount++;
+                if (t < tempMin) tempMin = t;
+                if (t > tempMax) tempMax = t;
+            }
+
+            const h = d.humidity;
+            if (h !== null && typeof h === 'number' && h <= 100) {
+                humSum += h;
+                humCount++;
+                if (h < humMin) humMin = h;
+                if (h > humMax) humMax = h;
+            }
+
+            const w = d.water_level;
+            if (typeof w === 'number') {
+                waterSum += w;
+                waterCount++;
+                if (w < waterMin) waterMin = w;
+                if (w > waterMax) waterMax = w;
+            }
+
+            const r = d.rainfall;
+            if (typeof r === 'number') {
+                rainSum += r;
+                rainCount++;
+                if (r < rainMin) rainMin = r;
+                if (r > rainMax) rainMax = r;
+            }
+        }
 
         return {
-            temperature: getStats('temperature'),
-            humidity: getStats('humidity'),
-            water_level: getStats('water_level'),
-            rainfall: { ...getStats('rainfall'), total: totalRainfall },
+            temperature: {
+                avg: tempCount > 0 ? tempSum / tempCount : null,
+                min: tempCount > 0 ? tempMin : null,
+                max: tempCount > 0 ? tempMax : null,
+            },
+            humidity: {
+                avg: humCount > 0 ? humSum / humCount : null,
+                min: humCount > 0 ? humMin : null,
+                max: humCount > 0 ? humMax : null,
+            },
+            water_level: {
+                avg: waterCount > 0 ? waterSum / waterCount : null,
+                min: waterCount > 0 ? waterMin : null,
+                max: waterCount > 0 ? waterMax : null,
+            },
+            rainfall: {
+                avg: rainCount > 0 ? rainSum / rainCount : null,
+                min: rainCount > 0 ? rainMin : null,
+                max: rainCount > 0 ? rainMax : null,
+                total: rainSum,
+            },
         };
     }, [deviceHistory]);
   
@@ -412,28 +449,14 @@ export default function DeviceDetailsPage() {
   }, [deviceInfo]);
 
   const pieChartData = useMemo(() => {
-    if (deviceHistory.length === 0) return [];
-    
-    const validTempHistory = deviceHistory.filter(d => d.temperature !== null);
-    const validHumidityHistory = deviceHistory.filter(d => d.humidity !== null);
-
-    const tempSum = validTempHistory.reduce((sum, d) => sum + (d.temperature ?? 0), 0);
-    const humiditySum = validHumidityHistory.reduce((sum, d) => sum + (d.humidity ?? 0), 0);
-    const waterSum = deviceHistory.reduce((sum, d) => sum + (d.water_level ?? 0), 0);
-    const rainSum = deviceHistory.reduce((sum, d) => sum + (d.rainfall ?? 0), 0);
-
-    const avgTemp = validTempHistory.length > 0 ? tempSum / validTempHistory.length : 0;
-    const avgHumidity = validHumidityHistory.length > 0 ? humiditySum / validHumidityHistory.length : 0;
-    const avgWater = deviceHistory.length > 0 ? waterSum / deviceHistory.length : 0;
-    const avgRain = deviceHistory.length > 0 ? rainSum / deviceHistory.length : 0;
-
+    if (!summaryStats) return [];
     return [
-      { name: `Avg Temp`, value: Math.max(0.01, avgTemp), unit: '°C' },
-      { name: `Avg Humidity`, value: Math.max(0.01, avgHumidity), unit: '%' },
-      { name: `Avg Water`, value: Math.max(0.01, avgWater), unit: 'ft' },
-      { name: `Avg Rain`, value: Math.max(0.01, avgRain), unit: 'mm' },
+      { name: `Avg Temp`, value: Math.max(0.01, summaryStats.temperature.avg ?? 0), unit: '°C' },
+      { name: `Avg Humidity`, value: Math.max(0.01, summaryStats.humidity.avg ?? 0), unit: '%' },
+      { name: `Avg Water`, value: Math.max(0.01, summaryStats.water_level.avg ?? 0), unit: 'ft' },
+      { name: `Avg Rain`, value: Math.max(0.01, summaryStats.rainfall.avg ?? 0), unit: 'mm' },
     ];
-  }, [deviceHistory]);
+  }, [summaryStats]);
   
   const PIE_COLORS = ['#fbbf24', '#a855f7', '#38bdf8', '#34d399'];
 
@@ -571,13 +594,10 @@ export default function DeviceDetailsPage() {
       doc.text('Filter & Summary Statistics', pageMargin, currentY);
       currentY += 6;
 
-      const validTemps = deviceHistory.map(d => d.temperature).filter((t): t is number => t !== null);
-      const validHumidity = deviceHistory.map(d => d.humidity).filter((h): h is number => h !== null);
-      
-      const avgTemp = validTemps.length > 0 ? (validTemps.reduce((a, b) => a + b, 0) / validTemps.length) : null;
-      const avgHumidity = validHumidity.length > 0 ? (validHumidity.reduce((a, b) => a + b, 0) / validHumidity.length) : null;
-      const avgWater = deviceHistory.length > 0 ? (deviceHistory.reduce((a, b) => a + b.water_level, 0) / deviceHistory.length) : 0;
-      const totalRain = deviceHistory.reduce((a, b) => a + b.rainfall, 0);
+      const avgTemp = summaryStats?.temperature.avg ?? null;
+      const avgHumidity = summaryStats?.humidity.avg ?? null;
+      const avgWater = summaryStats?.water_level.avg ?? 0;
+      const totalRain = summaryStats?.rainfall.total ?? 0;
 
       const filterStartText = appliedStartDate ? formatToBDTimeWithMonth(appliedStartDate) : (deviceHistory.length > 0 ? formatToBDTimeWithMonth(deviceHistory[0].timestamp) : 'Beginning');
       const filterEndText = appliedEndDate ? formatToBDTimeWithMonth(appliedEndDate) : (deviceHistory.length > 0 ? formatToBDTimeWithMonth(deviceHistory[deviceHistory.length - 1].timestamp) : 'Now');
@@ -649,8 +669,8 @@ export default function DeviceDetailsPage() {
       doc.addPage();
       currentY = pageMargin;
 
-      // Sort data chronologically (Oldest to Newest, date to date in serial order)
-      const sortedData = [...deviceHistory].sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0));
+      // Data is already sorted chronologically (Oldest to Newest, date to date in serial order)
+      const sortedData = deviceHistory;
       
       // Render ALL filtered records (supports full 1-year, 2-year, 3-year data without 3000 cap)
       const pdfSlice = sortedData;
