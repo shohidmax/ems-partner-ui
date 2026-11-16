@@ -355,13 +355,16 @@ export default function DeviceDetailsPage() {
     const rows = sorted.map((d, idx) => 
       `${idx + 1},"${d.uid}","${d.timestamp}",${d.temperature ?? ''},${d.humidity ?? ''},${d.water_level},${d.rainfall}`
     );
-    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers, ...rows].join('\n'));
+    const blob = new Blob([[headers, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', csvContent);
+    link.href = url;
     link.setAttribute('download', `device_${uid}_data_${appliedStartDate || 'start'}_to_${appliedEndDate || 'end'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: 'CSV Downloaded', description: `Exported ${sorted.length.toLocaleString()} records.` });
   };
 
   const latestData = useMemo(() => {
@@ -649,16 +652,13 @@ export default function DeviceDetailsPage() {
       // Sort data chronologically (Oldest to Newest, date to date in serial order)
       const sortedData = [...deviceHistory].sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0));
       
-      // Cap for PDF table rendering (supports up to 3000 rows in serial order)
-      const maxPdfRows = 3000;
-      const pdfSlice = sortedData.slice(0, maxPdfRows);
+      // Render ALL filtered records (supports full 1-year, 2-year, 3-year data without 3000 cap)
+      const pdfSlice = sortedData;
 
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.text(
-          sortedData.length > maxPdfRows 
-              ? `Filtered Data Points (Showing First ${maxPdfRows.toLocaleString()} of ${sortedData.length.toLocaleString()} in Serial Order)`
-              : `Filtered Data Points (${sortedData.length.toLocaleString()} Records in Serial Order)`, 
+          `Filtered Data Points (${pdfSlice.length.toLocaleString()} Records in Serial Order)`, 
           pageMargin, 
           currentY
       );
@@ -687,20 +687,22 @@ export default function DeviceDetailsPage() {
               4: { halign: 'center' },
               5: { halign: 'center' },
           },
-          styles: { fontSize: 8, cellPadding: 2 },
+          styles: { fontSize: 8, cellPadding: 1.8 },
           alternateRowStyles: { fillColor: [248, 250, 252] },
-          didDrawPage: (data) => {
-              const pageCount = (doc as any).internal.getNumberOfPages();
-              doc.setFontSize(8);
-              doc.setTextColor(148, 163, 184);
-              doc.text(
-                  `Page ${data.pageNumber} of ${pageCount} • EMS Environmental Monitoring System`,
-                  pageWidth / 2,
-                  pageHeight - 8,
-                  { align: 'center' }
-              );
-          }
       });
+
+      const totalPages = (doc as any).internal.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+          doc.setPage(p);
+          doc.setFontSize(8);
+          doc.setTextColor(148, 163, 184);
+          doc.text(
+              `Page ${p} of ${totalPages} • EMS Environmental Monitoring System`,
+              pageWidth / 2,
+              pageHeight - 8,
+              { align: 'center' }
+          );
+      }
       
       const fileStartDate = (appliedStartDate || '').slice(0, 10);
       const fileEndDate = (appliedEndDate || '').slice(0, 10);

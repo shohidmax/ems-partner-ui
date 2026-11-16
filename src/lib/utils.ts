@@ -80,25 +80,25 @@ export function formatToBDDate(dateString: string) {
     });
 }
 
+const bdTimeWithMonthFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Dhaka',
+  year: 'numeric',
+  month: 'short',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: true
+});
+
 export function formatToBDTimeWithMonth(dateString: string) {
   const date = getLocaleDate(dateString);
   if (!date) return dateString;
 
-  const formatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Dhaka',
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
-  
-  const parts = formatter.formatToParts(date);
+  const parts = bdTimeWithMonthFormatter.formatToParts(date);
   const p: Record<string, string> = {};
-  for (const part of parts) {
-      p[part.type] = part.value;
+  for (let i = 0; i < parts.length; i++) {
+    p[parts[i].type] = parts[i].value;
   }
   
   let month = p.month;
