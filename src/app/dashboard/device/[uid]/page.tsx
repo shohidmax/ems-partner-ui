@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts';
-import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin, Wind, ArrowUp, ArrowDown, Sparkles } from 'lucide-react';
+import { ArrowLeft, Download, QrCode, Loader2, TriangleAlert, Edit, Save, Filter, MapPin, Wind, ArrowUp, ArrowDown, Sparkles, FileText } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import QRCode from 'qrcode';
@@ -444,6 +444,14 @@ export default function DeviceDetailsPage() {
   }, []);
   
   const applyFilters = () => {
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      toast({
+        title: 'Invalid Date Range',
+        description: 'Start Date/Time cannot be later than End Date/Time.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setActiveFilter(null);
     setAppliedStartDate(startDate);
     setAppliedEndDate(endDate);
@@ -472,6 +480,7 @@ export default function DeviceDetailsPage() {
     setAppliedEndDate('');
     setActiveFilter(null);
     fetchDeviceHistory();
+    toast({ title: 'Filter Reset', description: 'Showing latest records without date filter.' });
   };
 
   const handleSave = async () => {
@@ -506,6 +515,10 @@ export default function DeviceDetailsPage() {
   };
 
   const downloadPDF = async () => {
+    if (deviceHistory.length === 0) {
+      toast({ title: 'No Data', description: 'No filtered data available to generate PDF.', variant: 'destructive' });
+      return;
+    }
     setIsPdfLoading(true);
     try {
       const doc = new jsPDF('p', 'mm', 'a4');
@@ -587,9 +600,19 @@ export default function DeviceDetailsPage() {
       const lineChartEl = document.querySelector<HTMLElement>('#line-chart-container');
       const pieChartEl = document.querySelector<HTMLElement>('#pie-chart-container');
 
-      const chartOptions = { backgroundColor: '#ffffff', scale: 2 };
-      const lineCanvas = lineChartEl ? await html2canvas(lineChartEl, chartOptions) : null;
-      const pieCanvas = pieChartEl ? await html2canvas(pieChartEl, chartOptions) : null;
+      const chartOptions = { backgroundColor: '#ffffff', scale: 1.5, logging: false };
+      let lineCanvas: HTMLCanvasElement | null = null;
+      let pieCanvas: HTMLCanvasElement | null = null;
+      try {
+        if (lineChartEl) lineCanvas = await html2canvas(lineChartEl, chartOptions);
+      } catch (e) {
+        console.warn('Could not capture line chart canvas:', e);
+      }
+      try {
+        if (pieChartEl) pieCanvas = await html2canvas(pieChartEl, chartOptions);
+      } catch (e) {
+        console.warn('Could not capture pie chart canvas:', e);
+      }
 
       const chartHeight = 70;
       const halfWidth = (pageWidth - pageMargin * 2 - 10) / 2;
@@ -626,8 +649,8 @@ export default function DeviceDetailsPage() {
       // Sort data chronologically (Oldest to Newest, date to date in serial order)
       const sortedData = [...deviceHistory].sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0));
       
-      // Safety cap for PDF generation: up to 2500 rows to prevent browser crash
-      const maxPdfRows = 2500;
+      // Cap for PDF table rendering (supports up to 3000 rows in serial order)
+      const maxPdfRows = 3000;
       const pdfSlice = sortedData.slice(0, maxPdfRows);
 
       doc.setFontSize(13);
@@ -679,7 +702,11 @@ export default function DeviceDetailsPage() {
           }
       });
       
-      doc.save(`EMS_Report_${uid}_${new Date().toISOString().split('T')[0]}.pdf`);
+      const fileStartDate = (appliedStartDate || '').slice(0, 10);
+      const fileEndDate = (appliedEndDate || '').slice(0, 10);
+      const fileNameRange = (fileStartDate && fileEndDate) ? `_${fileStartDate}_to_${fileEndDate}` : `_${new Date().toISOString().slice(0, 10)}`;
+      doc.save(`EMS_Report_${uid}${fileNameRange}.pdf`);
+      toast({ title: 'PDF Downloaded', description: `Report generated with ${pdfSlice.length.toLocaleString()} filtered records.` });
     } catch (err: any) {
       console.error('PDF generation error:', err);
       toast({ title: 'Error', description: 'Failed to generate PDF: ' + err.message, variant: 'destructive' });
@@ -897,14 +924,38 @@ export default function DeviceDetailsPage() {
                 <label htmlFor="end-date" className="text-xs sm:text-sm font-medium">End Date/Time</label>
                 <Input id="end-date" type="datetime-local" className="text-xs sm:text-sm h-9 sm:h-10" value={endDate} onChange={e => { setEndDate(e.target.value); setActiveFilter(null); }} />
             </div>
-            <div className="flex gap-2 w-full md:w-auto shrink-0">
+            <div className="flex flex-wrap gap-2 w-full md:w-auto shrink-0">
               <Button onClick={applyFilters} disabled={loading} className="flex-1 md:flex-none h-9 sm:h-10">
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Filter className="mr-2 h-4 w-4"/>}
                 Filter
               </Button>
-              <Button onClick={resetFilters} variant="ghost" className="flex-1 md:flex-none h-9 sm:h-10" disabled={loading}>Reset</Button>
+              <Button onClick={resetFilters} variant="outline" className="flex-1 md:flex-none h-9 sm:h-10" disabled={loading}>Reset</Button>
+              <Button 
+                onClick={downloadPDF} 
+                disabled={isPdfLoading || deviceHistory.length === 0} 
+                className="flex-1 md:flex-none h-9 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm"
+                title="Generate PDF report of filtered data points"
+              >
+                {isPdfLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileText className="mr-1.5 h-4 w-4" />}
+                {isPdfLoading ? 'Generating...' : 'Generate PDF'}
+              </Button>
             </div>
           </div>
+          {appliedStartDate && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t flex-wrap gap-1">
+              <span>
+                Active Filter: <strong className="text-foreground">{deviceHistory.length.toLocaleString()}</strong> data points found
+                ({formatToBDTime(appliedStartDate)} to {appliedEndDate ? formatToBDTime(appliedEndDate) : 'Now'})
+              </span>
+              <button 
+                type="button" 
+                onClick={() => document.getElementById('filtered-data-table')?.scrollIntoView({ behavior: 'smooth' })} 
+                className="text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer"
+              >
+                View in Filtered Table ↓
+              </button>
+            </div>
+          )}
         </CardContent>
       </Card>
       
@@ -1010,7 +1061,7 @@ export default function DeviceDetailsPage() {
         </Card>
       )}
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden" id="filtered-data-table">
         <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <div>
@@ -1023,6 +1074,27 @@ export default function DeviceDetailsPage() {
             </div>
             {deviceHistory.length > 0 && (
               <div className="flex items-center flex-wrap justify-between sm:justify-end gap-2 text-xs sm:text-sm text-muted-foreground">
+                <Button 
+                  size="sm" 
+                  className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 font-medium shadow-sm"
+                  onClick={downloadPDF}
+                  disabled={isPdfLoading || deviceHistory.length === 0}
+                  title="Generate PDF report for these filtered data points"
+                >
+                  {isPdfLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <FileText className="h-3.5 w-3.5"/>}
+                  <span>PDF Report</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs gap-1.5"
+                  onClick={downloadCSV}
+                  disabled={deviceHistory.length === 0}
+                  title="Download CSV for these filtered data points"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>CSV</span>
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
