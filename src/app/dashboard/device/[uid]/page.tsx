@@ -315,18 +315,25 @@ export default function DeviceDetailsPage() {
   }, [uid, token, fetchDeviceHistory, appliedStartDate, appliedEndDate]);
 
   const [tablePage, setTablePage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const rowsPerPage = 50;
   const totalPages = Math.max(1, Math.ceil(deviceHistory.length / rowsPerPage));
 
   useEffect(() => {
     setTablePage(1);
-  }, [deviceHistory]);
+  }, [deviceHistory, sortOrder]);
+
+  const displayHistory = useMemo(() => {
+    if (sortOrder === 'asc') {
+      return [...deviceHistory].sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0));
+    }
+    return [...deviceHistory].sort((a, b) => (new Date(b.timestamp).getTime() || 0) - (new Date(a.timestamp).getTime() || 0));
+  }, [deviceHistory, sortOrder]);
 
   const paginatedData = useMemo(() => {
-    const reversed = [...deviceHistory].reverse();
     const startIndex = (tablePage - 1) * rowsPerPage;
-    return reversed.slice(startIndex, startIndex + rowsPerPage);
-  }, [deviceHistory, tablePage]);
+    return displayHistory.slice(startIndex, startIndex + rowsPerPage);
+  }, [displayHistory, tablePage]);
 
   const chartData = useMemo(() => {
     if (deviceHistory.length <= 1500) return deviceHistory;
@@ -343,9 +350,10 @@ export default function DeviceDetailsPage() {
 
   const downloadCSV = () => {
     if (deviceHistory.length === 0) return;
-    const headers = ['UID,Timestamp,Temperature (°C),Humidity (%),Water Level (ft),Rainfall (mm)'];
-    const rows = deviceHistory.map(d => 
-      `"${d.uid}","${d.timestamp}",${d.temperature ?? ''},${d.humidity ?? ''},${d.water_level},${d.rainfall}`
+    const headers = ['SL,UID,Timestamp,Temperature (°C),Humidity (%),Water Level (ft),Rainfall (mm)'];
+    const sorted = [...deviceHistory].sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0));
+    const rows = sorted.map((d, idx) => 
+      `${idx + 1},"${d.uid}","${d.timestamp}",${d.temperature ?? ''},${d.humidity ?? ''},${d.water_level},${d.rainfall}`
     );
     const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent([headers, ...rows].join('\n'));
     const link = document.createElement('a');
@@ -437,12 +445,9 @@ export default function DeviceDetailsPage() {
   
   const applyFilters = () => {
     setActiveFilter(null);
-    if (appliedStartDate === startDate && appliedEndDate === endDate) {
-      fetchDeviceHistory(startDate, endDate);
-    } else {
-      setAppliedStartDate(startDate);
-      setAppliedEndDate(endDate);
-    }
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+    fetchDeviceHistory(startDate, endDate);
   };
 
   const handleQuickFilter = (minutes: number) => {
@@ -455,17 +460,18 @@ export default function DeviceDetailsPage() {
     setStartDate(startStr);
     setEndDate(endStr);
     setActiveFilter(minutes);
-    if (appliedStartDate === startStr && appliedEndDate === endStr) {
-      fetchDeviceHistory(startStr, endStr);
-    } else {
-      setAppliedStartDate(startStr);
-      setAppliedEndDate(endStr);
-    }
+    setAppliedStartDate(startStr);
+    setAppliedEndDate(endStr);
+    fetchDeviceHistory(startStr, endStr);
   };
 
   const resetFilters = () => {
-    setDefaultTimeRange();
+    setStartDate('');
+    setEndDate('');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
     setActiveFilter(null);
+    fetchDeviceHistory();
   };
 
   const handleSave = async () => {
@@ -501,152 +507,185 @@ export default function DeviceDetailsPage() {
 
   const downloadPDF = async () => {
     setIsPdfLoading(true);
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const pageMargin = 15;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let currentY = pageMargin;
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageMargin = 15;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let currentY = pageMargin;
 
-    if (qrCodeUrl) {
-        doc.addImage(qrCodeUrl, 'PNG', pageWidth - pageMargin - 30, currentY, 30, 30);
+      if (qrCodeUrl) {
+          doc.addImage(qrCodeUrl, 'PNG', pageWidth - pageMargin - 28, currentY, 28, 28);
+      }
+      doc.setFontSize(20);
+      doc.setTextColor(30, 41, 59); // Slate-800
+      doc.setFont('helvetica', 'bold');
+      doc.text('Environmental Monitoring Report', pageMargin, currentY + 6);
+      
+      currentY += 15;
+
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      if (deviceInfo?.institution) {
+          doc.text(`Institution: ${deviceInfo.institution}`, pageMargin, currentY);
+          currentY += 6;
+      }
+      if (deviceInfo?.name) {
+          doc.text(`Upazila / Station: ${deviceInfo.name}`, pageMargin, currentY);
+          currentY += 6;
+      }
+      if (deviceInfo?.location) {
+          doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY);
+          currentY += 6;
+      }
+      doc.text(`Device UID: ${uid}`, pageMargin, currentY);
+      currentY += 6;
+      doc.text(`Generated At: ${formatToBDTimeWithMonth(new Date().toISOString())}`, pageMargin, currentY);
+      currentY += 7;
+      
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(pageMargin, currentY, pageWidth - pageMargin, currentY);
+      currentY += 8;
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Filter & Summary Statistics', pageMargin, currentY);
+      currentY += 6;
+
+      const validTemps = deviceHistory.map(d => d.temperature).filter((t): t is number => t !== null);
+      const validHumidity = deviceHistory.map(d => d.humidity).filter((h): h is number => h !== null);
+      
+      const avgTemp = validTemps.length > 0 ? (validTemps.reduce((a, b) => a + b, 0) / validTemps.length) : null;
+      const avgHumidity = validHumidity.length > 0 ? (validHumidity.reduce((a, b) => a + b, 0) / validHumidity.length) : null;
+      const avgWater = deviceHistory.length > 0 ? (deviceHistory.reduce((a, b) => a + b.water_level, 0) / deviceHistory.length) : 0;
+      const totalRain = deviceHistory.reduce((a, b) => a + b.rainfall, 0);
+
+      const filterStartText = appliedStartDate ? formatToBDTimeWithMonth(appliedStartDate) : (deviceHistory.length > 0 ? formatToBDTimeWithMonth(deviceHistory[0].timestamp) : 'Beginning');
+      const filterEndText = appliedEndDate ? formatToBDTimeWithMonth(appliedEndDate) : (deviceHistory.length > 0 ? formatToBDTimeWithMonth(deviceHistory[deviceHistory.length - 1].timestamp) : 'Now');
+
+      const summaryBody: (string | number)[][] = [
+          ["Filter Period:", `${filterStartText}  to  ${filterEndText}`],
+          ["Total Filtered Records:", `${deviceHistory.length.toLocaleString()} data points`],
+          ["Average Temperature:", avgTemp !== null ? `${avgTemp.toFixed(1)} °C` : 'N/A'],
+          ["Average Humidity:", avgHumidity !== null ? `${avgHumidity.toFixed(1)} %` : 'N/A'],
+          ["Average Water Level:", `${avgWater.toFixed(2)} ft`],
+          ["Total Rainfall in Range:", `${totalRain.toFixed(2)} mm`],
+      ];
+
+      autoTable(doc, {
+          body: summaryBody,
+          startY: currentY,
+          theme: 'plain',
+          styles: { fontSize: 9, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 0 } },
+          columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } },
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 10;
+
+      const lineChartEl = document.querySelector<HTMLElement>('#line-chart-container');
+      const pieChartEl = document.querySelector<HTMLElement>('#pie-chart-container');
+
+      const chartOptions = { backgroundColor: '#ffffff', scale: 2 };
+      const lineCanvas = lineChartEl ? await html2canvas(lineChartEl, chartOptions) : null;
+      const pieCanvas = pieChartEl ? await html2canvas(pieChartEl, chartOptions) : null;
+
+      const chartHeight = 70;
+      const halfWidth = (pageWidth - pageMargin * 2 - 10) / 2;
+
+      if (currentY + chartHeight > pageHeight - pageMargin - 15) {
+          doc.addPage();
+          currentY = pageMargin;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      
+      const chartY = currentY + 5;
+
+      if (lineCanvas) {
+          doc.text('Sensor History', pageMargin, currentY);
+          const lineImgData = lineCanvas.toDataURL('image/png');
+          const lineProps = doc.getImageProperties(lineImgData);
+          const lineRatio = lineProps.height / lineProps.width;
+          doc.addImage(lineImgData, 'PNG', pageMargin, chartY, halfWidth, halfWidth * lineRatio);
+      }
+      
+      if (pieCanvas) {
+          doc.text('Averages (Filtered)', pageMargin + halfWidth + 10, currentY);
+          const pieImgData = pieCanvas.toDataURL('image/png');
+          const pieProps = doc.getImageProperties(pieImgData);
+          const pieRatio = pieProps.height / pieProps.width;
+          doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth + 10, chartY, halfWidth, halfWidth * pieRatio);
+      }
+      
+      doc.addPage();
+      currentY = pageMargin;
+
+      // Sort data chronologically (Oldest to Newest, date to date in serial order)
+      const sortedData = [...deviceHistory].sort((a, b) => (new Date(a.timestamp).getTime() || 0) - (new Date(b.timestamp).getTime() || 0));
+      
+      // Safety cap for PDF generation: up to 2500 rows to prevent browser crash
+      const maxPdfRows = 2500;
+      const pdfSlice = sortedData.slice(0, maxPdfRows);
+
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(
+          sortedData.length > maxPdfRows 
+              ? `Filtered Data Points (Showing First ${maxPdfRows.toLocaleString()} of ${sortedData.length.toLocaleString()} in Serial Order)`
+              : `Filtered Data Points (${sortedData.length.toLocaleString()} Records in Serial Order)`, 
+          pageMargin, 
+          currentY
+      );
+      currentY += 6;
+
+      const pdfTableRows = pdfSlice.map((d, index) => [
+          String(index + 1),
+          formatToBDTimeWithMonth(d.timestamp),
+          d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
+          d.humidity !== null ? d.humidity.toFixed(1) : 'N/A',
+          d.water_level.toFixed(2),
+          d.rainfall.toFixed(2)
+      ]);
+
+      autoTable(doc, {
+          head: [['SL', 'Date & Time (Timestamp)', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
+          body: pdfTableRows,
+          startY: currentY,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+          columnStyles: {
+              0: { halign: 'center', cellWidth: 14 },
+              1: { halign: 'left' },
+              2: { halign: 'center' },
+              3: { halign: 'center' },
+              4: { halign: 'center' },
+              5: { halign: 'center' },
+          },
+          styles: { fontSize: 8, cellPadding: 2 },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+          didDrawPage: (data) => {
+              const pageCount = (doc as any).internal.getNumberOfPages();
+              doc.setFontSize(8);
+              doc.setTextColor(148, 163, 184);
+              doc.text(
+                  `Page ${data.pageNumber} of ${pageCount} • EMS Environmental Monitoring System`,
+                  pageWidth / 2,
+                  pageHeight - 8,
+                  { align: 'center' }
+              );
+          }
+      });
+      
+      doc.save(`EMS_Report_${uid}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (err: any) {
+      console.error('PDF generation error:', err);
+      toast({ title: 'Error', description: 'Failed to generate PDF: ' + err.message, variant: 'destructive' });
+    } finally {
+      setIsPdfLoading(false);
     }
-    doc.setFontSize(22);
-    doc.setTextColor(50, 50, 50); // Dark gray for professional look
-    doc.setFont('helvetica', 'bold');
-    doc.text('Environmental Monitoring Report', pageMargin, currentY + 5);
-    
-    currentY += 18;
-
-    doc.setTextColor(80, 80, 80); // Lighter gray for info text
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    if (deviceInfo?.institution) {
-        doc.text(`Institution: ${deviceInfo.institution}`, pageMargin, currentY);
-        currentY += 7;
-    }
-    if (deviceInfo?.name) {
-        doc.text(`Upazila Name: ${deviceInfo.name}`, pageMargin, currentY);
-        currentY += 7;
-    }
-    if (deviceInfo?.location) {
-        doc.text(`Location: ${deviceInfo.location}`, pageMargin, currentY);
-        currentY += 7;
-    }
-    doc.text(`Device UID: ${uid}`, pageMargin, currentY);
-    currentY += 8;
-    
-    // Add a horizontal divider line below device info
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.5);
-    doc.line(pageMargin, currentY, pageWidth - pageMargin, currentY);
-    currentY += 10;
-    
-    doc.setTextColor(0, 0, 0);
-    
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Summary', pageMargin, currentY);
-    currentY += 8;
-
-    const validTemps = deviceHistory.map(d => d.temperature).filter((t): t is number => t !== null);
-    const validHumidity = deviceHistory.map(d => d.humidity).filter((h): h is number => h !== null);
-    
-    const avgTemp = validTemps.length > 0 ? (validTemps.reduce((a, b) => a + b, 0) / validTemps.length) : null;
-    const avgHumidity = validHumidity.length > 0 ? (validHumidity.reduce((a, b) => a + b, 0) / validHumidity.length) : null;
-    const avgWater = deviceHistory.length > 0 ? (deviceHistory.reduce((a, b) => a + b.water_level, 0) / deviceHistory.length) : 0;
-    const totalRain = deviceHistory.reduce((a, b) => a + b.rainfall, 0);
-
-    const summaryBody: (string | number)[][] = [
-        ["Filter Start:", (appliedStartDate && !isNaN(new Date(appliedStartDate).getTime())) ? formatToBDTimeWithMonth(new Date(appliedStartDate).toISOString()) : 'All Time'],
-        ["Filter End:", (appliedEndDate && !isNaN(new Date(appliedEndDate).getTime())) ? formatToBDTimeWithMonth(new Date(appliedEndDate).toISOString()) : 'All Time'],
-        ["Latitude:", deviceInfo?.latitude ?? 'N/A'],
-        ["Longitude:", deviceInfo?.longitude ?? 'N/A'],
-        ["Average Temperature:", avgTemp !== null ? `${avgTemp.toFixed(1)} °C` : 'N/A'],
-        ["Average Humidity:", avgHumidity !== null ? `${avgHumidity.toFixed(1)} %` : 'N/A'],
-        ["Average Water Level:", `${avgWater.toFixed(2)} ft`],
-        ["Total Rainfall:", `${totalRain.toFixed(2)} mm`],
-    ];
-
-    autoTable(doc, {
-        body: summaryBody,
-        startY: currentY,
-        theme: 'plain',
-        styles: { fontSize: 10, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 0 } },
-        columnStyles: { 0: { fontStyle: 'bold' } },
-    });
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    const lineChartEl = document.querySelector<HTMLElement>('#line-chart-container');
-    const pieChartEl = document.querySelector<HTMLElement>('#pie-chart-container');
-
-    const chartOptions = { backgroundColor: '#ffffff', scale: 2 };
-    
-    const lineCanvas = lineChartEl ? await html2canvas(lineChartEl, chartOptions) : null;
-    const pieCanvas = pieChartEl ? await html2canvas(pieChartEl, chartOptions) : null;
-
-    const chartHeight = 80;
-    const halfWidth = (pageWidth - pageMargin * 2 - 10) / 2;
-
-    if (currentY + chartHeight > doc.internal.pageSize.getHeight() - pageMargin) {
-        doc.addPage();
-        currentY = pageMargin;
-    }
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    
-    const chartY = currentY;
-    const chartTitleY = chartY - 2;
-
-    if (lineCanvas) {
-        doc.text('Sensor History', pageMargin, chartTitleY);
-        const lineImgData = lineCanvas.toDataURL('image/png');
-        const lineProps = doc.getImageProperties(lineImgData);
-        const lineRatio = lineProps.height / lineProps.width;
-        doc.addImage(lineImgData, 'PNG', pageMargin, chartY, halfWidth, halfWidth * lineRatio);
-    }
-    
-    if (pieCanvas) {
-        doc.text('Averages (Filtered)', pageMargin + halfWidth + 10, chartTitleY);
-        const pieImgData = pieCanvas.toDataURL('image/png');
-        const pieProps = doc.getImageProperties(pieImgData);
-        const pieRatio = pieProps.height / pieProps.width;
-        doc.addImage(pieImgData, 'PNG', pageMargin + halfWidth + 10, chartY, halfWidth, halfWidth * pieRatio);
-    }
-    
-    doc.addPage();
-    currentY = pageMargin;
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    const pdfTableRows = (deviceHistory.length > 500 ? deviceHistory.slice(-500) : deviceHistory)
-        .slice().reverse().map(d => [
-            formatToBDTimeWithMonth(d.timestamp),
-            d.temperature !== null ? d.temperature.toFixed(1) : 'N/A',
-            d.humidity !== null ? d.humidity.toFixed(1) : 'N/A',
-            d.water_level.toFixed(2),
-            d.rainfall.toFixed(2)
-        ]);
-
-    doc.text(
-        deviceHistory.length > 500 
-            ? `Filtered Data Points (Showing Latest 500 of ${deviceHistory.length.toLocaleString()})`
-            : `Filtered Data Points (${deviceHistory.length.toLocaleString()})`, 
-        pageMargin, 
-        currentY
-    );
-    currentY += 8;
-
-    autoTable(doc, {
-        head: [['Timestamp', 'Temp (°C)', 'Humidity (%)', 'Water (ft)', 'Rain (mm)']],
-        body: pdfTableRows,
-        startY: currentY,
-        theme: 'grid',
-        headStyles: { fillColor: [230, 230, 230], textColor: 20 },
-        styles: { fontSize: 8 },
-    });
-    
-    doc.save(`EMS_Report_${uid}_${new Date().toISOString().split('T')[0]}.pdf`);
-    setIsPdfLoading(false);
   };
   
   if (loading && deviceHistory.length === 0 && !deviceInfo) {
@@ -978,41 +1017,53 @@ export default function DeviceDetailsPage() {
               <CardTitle className="text-lg sm:text-xl">Filtered Data Points</CardTitle>
               <CardDescription className="text-xs mt-1">
                 {deviceHistory.length > 0 
-                  ? `Total ${deviceHistory.length.toLocaleString()} records found in selected range` 
-                  : 'No records found'}
+                  ? `Total ${deviceHistory.length.toLocaleString()} records found in selected range (Sorted: ${sortOrder === 'asc' ? 'Oldest to Newest' : 'Newest to Oldest'})` 
+                  : (loading ? 'Loading records...' : 'No records found')}
               </CardDescription>
             </div>
             {deviceHistory.length > 0 && (
-              <div className="flex items-center justify-between sm:justify-end gap-2 text-xs sm:text-sm text-muted-foreground">
+              <div className="flex items-center flex-wrap justify-between sm:justify-end gap-2 text-xs sm:text-sm text-muted-foreground">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="h-8 text-xs"
-                  onClick={() => setTablePage(p => Math.max(1, p - 1))}
-                  disabled={tablePage === 1}
+                  onClick={() => setSortOrder(o => o === 'asc' ? 'desc' : 'asc')}
+                  title="Toggle serial order between earliest-first and latest-first"
                 >
-                  Previous
+                  Order: {sortOrder === 'asc' ? 'Oldest → Newest' : 'Newest → Oldest'}
                 </Button>
-                <span>Page {tablePage} of {totalPages}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                  onClick={() => setTablePage(p => Math.min(totalPages, p + 1))}
-                  disabled={tablePage >= totalPages}
-                >
-                  Next
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs"
+                    onClick={() => setTablePage(p => Math.max(1, p - 1))}
+                    disabled={tablePage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="px-1 text-xs">Page {tablePage} of {totalPages}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 text-xs"
+                    onClick={() => setTablePage(p => Math.min(totalPages, p + 1))}
+                    disabled={tablePage >= totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
           </div>
         </CardHeader>
         <CardContent className="p-0 sm:p-6 pt-0 sm:pt-0">
           <div className="max-h-[500px] overflow-y-auto overflow-x-auto w-full">
-            <Table className="min-w-[480px]">
+            <Table className="min-w-[540px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs sm:text-sm">Timestamp</TableHead>
+                  <TableHead className="w-14 text-center text-xs sm:text-sm font-bold">SL</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Timestamp (Date & Time)</TableHead>
                   <TableHead className="text-center text-xs sm:text-sm">Temp (°C)</TableHead>
                   <TableHead className="text-center text-xs sm:text-sm">Humidity (%)</TableHead>
                   <TableHead className="text-center text-xs sm:text-sm">Water (ft)</TableHead>
@@ -1020,9 +1071,21 @@ export default function DeviceDetailsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedData.length > 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      <div className="flex justify-center items-center gap-2 text-muted-foreground text-xs sm:text-sm">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <span>Loading filtered data points...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : paginatedData.length > 0 ? (
                   paginatedData.map((d, i) => (
                     <TableRow key={i}>
+                      <TableCell className="text-center font-mono font-medium text-xs sm:text-sm text-muted-foreground">
+                        {(tablePage - 1) * rowsPerPage + i + 1}
+                      </TableCell>
                       <TableCell className="text-xs sm:text-sm whitespace-nowrap">
                         {formatToBDTimeWithMonth(d.timestamp)}
                       </TableCell>
@@ -1034,7 +1097,7 @@ export default function DeviceDetailsPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground text-xs sm:text-sm">No data for the selected filter.</TableCell>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-xs sm:text-sm">No data found for the selected filter range.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
