@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { formatToBDTime, formatToBDDate, formatToBDTimeWithMonth } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
 import { DeviceAiChat } from '@/components/device-ai-chat';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DeviceInfo {
   uid: string;
@@ -89,9 +90,45 @@ const ChartTooltipContent = ({ active, payload, label }: any) => {
 
 const renderActiveShape = (props: any) => {
     const RADIAN = Math.PI / 180;
-    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value, isMobile } = props;
     const sin = Math.sin(-RADIAN * midAngle);
     const cos = Math.cos(-RADIAN * midAngle);
+    const name = payload.name.split('(')[0];
+
+    if (isMobile) {
+        return (
+            <g>
+                <text x={cx} y={cy} dy={-12} textAnchor="middle" fill={fill} className="text-xs font-semibold">
+                    {name}
+                </text>
+                <text x={cx} y={cy} dy={8} textAnchor="middle" fill="hsl(var(--foreground))" className="text-base font-bold">
+                    {`${value.toFixed(1)}${payload.unit || ''}`}
+                </text>
+                <text x={cx} y={cy} dy={24} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-[10px]">
+                    {`(${(percent * 100).toFixed(1)}%)`}
+                </text>
+                <Sector
+                    cx={cx}
+                    cy={cy}
+                    innerRadius={innerRadius}
+                    outerRadius={outerRadius}
+                    startAngle={startAngle}
+                    endAngle={endAngle}
+                    fill={fill}
+                />
+                <Sector
+                    cx={cx}
+                    cy={cy}
+                    startAngle={startAngle}
+                    endAngle={endAngle}
+                    innerRadius={outerRadius + 3}
+                    outerRadius={outerRadius + 6}
+                    fill={fill}
+                />
+            </g>
+        );
+    }
+
     const sx = cx + (outerRadius + 10) * cos;
     const sy = cy + (outerRadius + 10) * sin;
     const mx = cx + (outerRadius + 30) * cos;
@@ -99,7 +136,6 @@ const renderActiveShape = (props: any) => {
     const ex = mx + (cos >= 0 ? 1 : -1) * 22;
     const ey = my;
     const textAnchor = cos >= 0 ? 'start' : 'end';
-    const name = payload.name.split('(')[0];
 
     return (
         <g>
@@ -139,6 +175,7 @@ const renderActiveShape = (props: any) => {
 
 
 export default function DeviceDetailsPage() {
+  const isMobile = useIsMobile();
   const params = useParams();
   const uidFromParams = params?.uid;
   const uid = uidFromParams ? decodeURIComponent(Array.isArray(uidFromParams) ? uidFromParams[0] : uidFromParams) : '';
@@ -648,40 +685,40 @@ export default function DeviceDetailsPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden p-1 sm:p-0">
        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-lg p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>Edit Device</DialogTitle>
                 <CardDescription>Update the name and location for this device.</CardDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="institution" className="text-right">Institution</Label>
-                    <Input id="institution" value={editingInstitution || ''} onChange={(e) => setEditingInstitution(e.target.value)} className="col-span-3" />
+            <div className="grid gap-3 sm:gap-4 py-2 sm:py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-1.5 sm:gap-4">
+                    <Label htmlFor="institution" className="text-left sm:text-right font-medium text-xs sm:text-sm">Institution</Label>
+                    <Input id="institution" value={editingInstitution || ''} onChange={(e) => setEditingInstitution(e.target.value)} className="col-span-1 sm:col-span-3 text-sm" />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Upazila Name</Label>
-                    <Input id="name" value={editingName} onChange={(e) => setEditingName(e.target.value)} className="col-span-3" />
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-1.5 sm:gap-4">
+                    <Label htmlFor="name" className="text-left sm:text-right font-medium text-xs sm:text-sm">Upazila Name</Label>
+                    <Input id="name" value={editingName} onChange={(e) => setEditingName(e.target.value)} className="col-span-1 sm:col-span-3 text-sm" />
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="location" className="text-right">Location</Label>
-                    <Input id="location" value={editingLocation} onChange={(e) => setEditingLocation(e.target.value)} className="col-span-3" />
+                 <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-1.5 sm:gap-4">
+                    <Label htmlFor="location" className="text-left sm:text-right font-medium text-xs sm:text-sm">Location</Label>
+                    <Input id="location" value={editingLocation} onChange={(e) => setEditingLocation(e.target.value)} className="col-span-1 sm:col-span-3 text-sm" />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="latitude" className="text-right">Latitude</Label>
-                    <Input id="latitude" type="number" value={editingLatitude ?? ''} onChange={(e) => setEditingLatitude(e.target.value === '' ? null : parseFloat(e.target.value))} className="col-span-3" />
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-1.5 sm:gap-4">
+                    <Label htmlFor="latitude" className="text-left sm:text-right font-medium text-xs sm:text-sm">Latitude</Label>
+                    <Input id="latitude" type="number" value={editingLatitude ?? ''} onChange={(e) => setEditingLatitude(e.target.value === '' ? null : parseFloat(e.target.value))} className="col-span-1 sm:col-span-3 text-sm" />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="longitude" className="text-right">Longitude</Label>
-                    <Input id="longitude" type="number" value={editingLongitude ?? ''} onChange={(e) => setEditingLongitude(e.target.value === '' ? null : parseFloat(e.target.value))} className="col-span-3" />
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-1.5 sm:gap-4">
+                    <Label htmlFor="longitude" className="text-left sm:text-right font-medium text-xs sm:text-sm">Longitude</Label>
+                    <Input id="longitude" type="number" value={editingLongitude ?? ''} onChange={(e) => setEditingLongitude(e.target.value === '' ? null : parseFloat(e.target.value))} className="col-span-1 sm:col-span-3 text-sm" />
                 </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
                 <DialogClose asChild>
-                    <Button variant="ghost">Cancel</Button>
+                    <Button variant="ghost" className="w-full sm:w-auto">Cancel</Button>
                 </DialogClose>
-                <Button onClick={handleSave} disabled={isSaving || !isAdmin}>
+                <Button onClick={handleSave} disabled={isSaving || !isAdmin} className="w-full sm:w-auto">
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes
                 </Button>
@@ -690,47 +727,51 @@ export default function DeviceDetailsPage() {
     </Dialog>
 
 
-      <div className="flex justify-between items-center flex-wrap gap-3">
-        <Button onClick={() => window.history.back()} variant="outline"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
-        <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+        <Button onClick={() => window.history.back()} variant="outline" size="sm" className="self-start sm:self-auto">
+            <ArrowLeft className="mr-2 h-4 w-4" />Back
+        </Button>
+        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 items-center w-full sm:w-auto">
             <Button 
                 variant="default" 
                 size="sm" 
                 onClick={() => setIsAiChatOpen(true)}
-                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md flex items-center gap-1.5"
+                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md flex items-center gap-1.5 px-2 sm:px-3 text-xs sm:text-sm justify-center"
             >
-                <Sparkles className="h-4 w-4 text-amber-200" />
-                <span className="font-semibold">Ask AI</span>
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-200 shrink-0" />
+                <span className="font-semibold whitespace-nowrap">Ask AI</span>
             </Button>
             {isAdmin && (
-                <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
-                    <Edit className="mr-2 h-4 w-4" /> Edit Device
+                <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)} className="px-2 sm:px-3 text-xs sm:text-sm justify-center">
+                    <Edit className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" /> <span className="truncate">Edit</span>
                 </Button>
             )}
             <Dialog>
                 <DialogTrigger asChild>
-                    <Button variant="outline" size="sm"><QrCode className="mr-2 h-4 w-4" />Share</Button>
+                    <Button variant="outline" size="sm" className="px-2 sm:px-3 text-xs sm:text-sm justify-center">
+                        <QrCode className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" /><span>Share</span>
+                    </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="w-[95vw] max-w-[425px] p-4 sm:p-6">
                     <DialogHeader>
-                    <DialogTitle>Scan to view this device</DialogTitle>
+                    <DialogTitle className="text-base sm:text-lg">Scan to view this device</DialogTitle>
                     </DialogHeader>
-                    <div className="flex flex-col items-center justify-center p-4">
-                    {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64" />}
-                    <p className="text-xs text-muted-foreground mt-2 break-all">{typeof window !== 'undefined' && window.location.href}</p>
+                    <div className="flex flex-col items-center justify-center p-2 sm:p-4">
+                    {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" className="w-52 h-52 sm:w-64 sm:h-64 object-contain" />}
+                    <p className="text-xs text-muted-foreground mt-2 break-all text-center">{typeof window !== 'undefined' && window.location.href}</p>
                     </div>
                 </DialogContent>
             </Dialog>
         </div>
       </div>
 
-      <div>
-        <h1 className="text-3xl font-bold">{deviceInfo?.name || 'Device Details'}</h1>
-        <p className="text-muted-foreground font-mono">{uid}</p>
+      <div className="min-w-0">
+        <h1 className="text-2xl sm:text-3xl font-bold truncate">{deviceInfo?.name || 'Device Details'}</h1>
+        <p className="text-muted-foreground font-mono text-xs sm:text-sm break-all">{uid}</p>
         {deviceInfo?.location && (
-            <p className="text-muted-foreground text-sm flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> 
-                {deviceInfo.location}
+            <p className="text-muted-foreground text-xs sm:text-sm flex items-start gap-1.5 mt-1 min-w-0">
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" /> 
+                <span className="break-all [overflow-wrap:anywhere] min-w-0">{deviceInfo.location}</span>
             </p>
         )}
       </div>
@@ -744,46 +785,46 @@ export default function DeviceDetailsPage() {
       )}
       
        <Card>
-        <CardHeader>
-            <CardTitle>Filtered Range Summary</CardTitle>
-            <CardDescription>
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-lg sm:text-xl">Filtered Range Summary</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
                 Summary of data from {appliedStartDate ? formatToBDTime(appliedStartDate) : 'the beginning'} to {appliedEndDate ? formatToBDTime(appliedEndDate) : 'now'}.
                 {latestData && (
                     <span className="block mt-1">Last Updated: <span className="font-semibold">{formatToBDTime(latestData.timestamp)}</span></span>
                 )}
             </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 p-3 sm:p-6 pt-0 sm:pt-0">
             {summaryStats ? (
                 <>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                        <h4 className="text-sm font-medium text-muted-foreground text-amber-500">Temperature</h4>
-                        <p className="text-2xl font-bold">{summaryStats.temperature.avg?.toFixed(1) ?? 'N/A'} °C</p>
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500"/>Min: {summaryStats.temperature.min?.toFixed(1) ?? 'N/A'}</span>
-                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500"/>Max: {summaryStats.temperature.max?.toFixed(1) ?? 'N/A'}</span>
+                    <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-xs sm:text-sm font-medium text-amber-500">Temperature</h4>
+                        <p className="text-lg sm:text-2xl font-bold mt-0.5">{summaryStats.temperature.avg?.toFixed(1) ?? 'N/A'} °C</p>
+                        <div className="flex flex-col sm:flex-row sm:justify-between text-[11px] sm:text-xs text-muted-foreground mt-1 gap-0.5">
+                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500 shrink-0"/>Min: {summaryStats.temperature.min?.toFixed(1) ?? 'N/A'}</span>
+                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500 shrink-0"/>Max: {summaryStats.temperature.max?.toFixed(1) ?? 'N/A'}</span>
                         </div>
                     </div>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                        <h4 className="text-sm font-medium text-muted-foreground text-purple-500">Humidity</h4>
-                        <p className="text-2xl font-bold">{summaryStats.humidity.avg?.toFixed(1) ?? 'N/A'} %</p>
-                         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500"/>Min: {summaryStats.humidity.min?.toFixed(1) ?? 'N/A'}</span>
-                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500"/>Max: {summaryStats.humidity.max?.toFixed(1) ?? 'N/A'}</span>
+                    <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-xs sm:text-sm font-medium text-purple-500">Humidity</h4>
+                        <p className="text-lg sm:text-2xl font-bold mt-0.5">{summaryStats.humidity.avg?.toFixed(1) ?? 'N/A'} %</p>
+                         <div className="flex flex-col sm:flex-row sm:justify-between text-[11px] sm:text-xs text-muted-foreground mt-1 gap-0.5">
+                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500 shrink-0"/>Min: {summaryStats.humidity.min?.toFixed(1) ?? 'N/A'}</span>
+                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500 shrink-0"/>Max: {summaryStats.humidity.max?.toFixed(1) ?? 'N/A'}</span>
                         </div>
                     </div>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                        <h4 className="text-sm font-medium text-muted-foreground text-sky-500">Water Level</h4>
-                        <p className="text-2xl font-bold">{summaryStats.water_level.avg?.toFixed(2) ?? 'N/A'} ft</p>
-                         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500"/>Min: {summaryStats.water_level.min?.toFixed(2) ?? 'N/A'}</span>
-                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500"/>Max: {summaryStats.water_level.max?.toFixed(2) ?? 'N/A'}</span>
+                    <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-xs sm:text-sm font-medium text-sky-500">Water Level</h4>
+                        <p className="text-lg sm:text-2xl font-bold mt-0.5">{summaryStats.water_level.avg?.toFixed(2) ?? 'N/A'} ft</p>
+                         <div className="flex flex-col sm:flex-row sm:justify-between text-[11px] sm:text-xs text-muted-foreground mt-1 gap-0.5">
+                            <span className="flex items-center gap-1"><ArrowDown className="h-3 w-3 text-blue-500 shrink-0"/>Min: {summaryStats.water_level.min?.toFixed(2) ?? 'N/A'}</span>
+                            <span className="flex items-center gap-1"><ArrowUp className="h-3 w-3 text-red-500 shrink-0"/>Max: {summaryStats.water_level.max?.toFixed(2) ?? 'N/A'}</span>
                         </div>
                     </div>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                        <h4 className="text-sm font-medium text-muted-foreground text-emerald-500">Rainfall</h4>
-                        <p className="text-2xl font-bold">{summaryStats.rainfall.total?.toFixed(2) ?? 'N/A'} mm</p>
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                        <h4 className="text-xs sm:text-sm font-medium text-emerald-500">Rainfall</h4>
+                        <p className="text-lg sm:text-2xl font-bold mt-0.5">{summaryStats.rainfall.total?.toFixed(2) ?? 'N/A'} mm</p>
+                        <div className="flex justify-between text-[11px] sm:text-xs text-muted-foreground mt-1">
                             <span>Total in Range</span>
                         </div>
                     </div>
@@ -793,36 +834,36 @@ export default function DeviceDetailsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Filter History</CardTitle>
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <CardTitle className="text-lg sm:text-xl">Filter History</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-             <div className="flex flex-wrap gap-2">
-                <Button variant={activeFilter === 6 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(6 * 60)}>6 hour</Button>
-                <Button variant={activeFilter === 12 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(12 * 60)}>12 hour</Button>
-                <Button variant={activeFilter === 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(24 * 60)}>1 day</Button>
-                <Button variant={activeFilter === 7 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(7 * 24 * 60)}>7 day</Button>
-                <Button variant={activeFilter === 15 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(15 * 24 * 60)}>15 day</Button>
-                <Button variant={activeFilter === 30 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(30 * 24 * 60)}>30 day</Button>
-                <Button variant={activeFilter === 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(365 * 24 * 60)}>1 year</Button>
-                <Button variant={activeFilter === 2 * 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(2 * 365 * 24 * 60)}>2 year</Button>
-                <Button variant={activeFilter === 3 * 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(3 * 365 * 24 * 60)}>3 year</Button>
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+             <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                <Button variant={activeFilter === 6 * 60 ? "default" : "outline"} size="sm" className="h-8 text-xs px-2.5 sm:px-3" onClick={() => handleQuickFilter(6 * 60)}>6 hour</Button>
+                <Button variant={activeFilter === 12 * 60 ? "default" : "outline"} size="sm" className="h-8 text-xs px-2.5 sm:px-3" onClick={() => handleQuickFilter(12 * 60)}>12 hour</Button>
+                <Button variant={activeFilter === 24 * 60 ? "default" : "outline"} size="sm" className="h-8 text-xs px-2.5 sm:px-3" onClick={() => handleQuickFilter(24 * 60)}>1 day</Button>
+                <Button variant={activeFilter === 7 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(7 * 24 * 60)} className="h-8 text-xs px-2.5 sm:px-3">7 day</Button>
+                <Button variant={activeFilter === 15 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(15 * 24 * 60)} className="h-8 text-xs px-2.5 sm:px-3">15 day</Button>
+                <Button variant={activeFilter === 30 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(30 * 24 * 60)} className="h-8 text-xs px-2.5 sm:px-3">30 day</Button>
+                <Button variant={activeFilter === 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(365 * 24 * 60)} className="h-8 text-xs px-2.5 sm:px-3">1 year</Button>
+                <Button variant={activeFilter === 2 * 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(2 * 365 * 24 * 60)} className="h-8 text-xs px-2.5 sm:px-3">2 year</Button>
+                <Button variant={activeFilter === 3 * 365 * 24 * 60 ? "default" : "outline"} size="sm" onClick={() => handleQuickFilter(3 * 365 * 24 * 60)} className="h-8 text-xs px-2.5 sm:px-3">3 year</Button>
             </div>
-          <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-end">
             <div className="grid w-full gap-1.5">
-                <label htmlFor="start-date" className="text-sm font-medium">Start Date/Time</label>
-                <Input id="start-date" type="datetime-local" value={startDate} onChange={e => { setStartDate(e.target.value); setActiveFilter(null); }} />
+                <label htmlFor="start-date" className="text-xs sm:text-sm font-medium">Start Date/Time</label>
+                <Input id="start-date" type="datetime-local" className="text-xs sm:text-sm h-9 sm:h-10" value={startDate} onChange={e => { setStartDate(e.target.value); setActiveFilter(null); }} />
             </div>
             <div className="grid w-full gap-1.5">
-                <label htmlFor="end-date" className="text-sm font-medium">End Date/Time</label>
-                <Input id="end-date" type="datetime-local" value={endDate} onChange={e => { setEndDate(e.target.value); setActiveFilter(null); }} />
+                <label htmlFor="end-date" className="text-xs sm:text-sm font-medium">End Date/Time</label>
+                <Input id="end-date" type="datetime-local" className="text-xs sm:text-sm h-9 sm:h-10" value={endDate} onChange={e => { setEndDate(e.target.value); setActiveFilter(null); }} />
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <Button onClick={applyFilters} disabled={loading} className="flex-1 md:flex-none">
+            <div className="flex gap-2 w-full md:w-auto shrink-0">
+              <Button onClick={applyFilters} disabled={loading} className="flex-1 md:flex-none h-9 sm:h-10">
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Filter className="mr-2 h-4 w-4"/>}
                 Filter
               </Button>
-              <Button onClick={resetFilters} variant="ghost" className="flex-1 md:flex-none" disabled={loading}>Reset</Button>
+              <Button onClick={resetFilters} variant="ghost" className="flex-1 md:flex-none h-9 sm:h-10" disabled={loading}>Reset</Button>
             </div>
           </div>
         </CardContent>
@@ -837,10 +878,10 @@ export default function DeviceDetailsPage() {
        )}
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <Card className="lg:col-span-3 light" id="line-chart-container">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="lg:col-span-3 light overflow-hidden" id="line-chart-container">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 sm:p-6 pb-2">
             <div>
-              <CardTitle>Sensor History</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Sensor History</CardTitle>
               <CardDescription className="text-xs mt-1">
                 {deviceHistory.length > 0 ? (
                   <span>
@@ -855,22 +896,22 @@ export default function DeviceDetailsPage() {
               </CardDescription>
             </div>
             {deviceHistory.length > 0 && (
-              <Button variant="outline" size="sm" onClick={downloadCSV}>
+              <Button variant="outline" size="sm" className="h-8 text-xs self-start sm:self-auto" onClick={downloadCSV}>
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 CSV
               </Button>
             )}
           </CardHeader>
-          <CardContent className="h-[400px] p-0">
+          <CardContent className="h-[300px] sm:h-[400px] p-0 sm:p-2">
              {loading ? <div className="h-full flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
+                <LineChart data={chartData} margin={{ top: 10, right: isMobile ? 8 : 20, left: isMobile ? -22 : 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="dateTime" tickFormatter={(ts) => formatToBDTime(ts).split(',')[0] } stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis yAxisId="left" stroke="#fbbf24" label={{ value: '°C / %', angle: -90, position: 'insideLeft' }} />
-                  <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" label={{ value: 'ft / mm', angle: -90, position: 'insideRight' }}/>
+                  <XAxis dataKey="dateTime" tickFormatter={(ts) => formatToBDTime(ts).split(',')[0] } stroke="hsl(var(--muted-foreground))" fontSize={isMobile ? 10 : 12} tickLine={false} />
+                  <YAxis yAxisId="left" stroke="#fbbf24" width={isMobile ? 30 : 45} tick={{ fontSize: isMobile ? 10 : 12 }} label={isMobile ? undefined : { value: '°C / %', angle: -90, position: 'insideLeft' }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="#38bdf8" width={isMobile ? 30 : 45} tick={{ fontSize: isMobile ? 10 : 12 }} label={isMobile ? undefined : { value: 'ft / mm', angle: -90, position: 'insideRight' }}/>
                   <Tooltip content={<ChartTooltipContent />} />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: isMobile ? '11px' : '14px', paddingTop: '8px' }} />
                   <Line yAxisId="left" type="monotone" dataKey="temperature" name="Temperature" stroke="#fbbf24" dot={false} connectNulls />
                   <Line yAxisId="left" type="monotone" dataKey="humidity" name="Humidity" stroke="#a855f7" dot={false} connectNulls />
                   <Line yAxisId="right" type="monotone" dataKey="water_level" name="Water Level" stroke="#38bdf8" dot={false} />
@@ -880,20 +921,20 @@ export default function DeviceDetailsPage() {
              )}
           </CardContent>
         </Card>
-        <Card className="lg:col-span-2" id="pie-chart-container">
-          <CardHeader><CardTitle>Averages (Filtered)</CardTitle></CardHeader>
-          <CardContent className="h-[400px]">
+        <Card className="lg:col-span-2 overflow-hidden" id="pie-chart-container">
+          <CardHeader className="p-4 sm:p-6 pb-2"><CardTitle className="text-lg sm:text-xl">Averages (Filtered)</CardTitle></CardHeader>
+          <CardContent className="h-[300px] sm:h-[400px] p-2 sm:p-6">
              {pieChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie 
                             activeIndex={activePieIndex}
-                            activeShape={renderActiveShape}
+                            activeShape={(props: any) => renderActiveShape({ ...props, isMobile })}
                             data={pieChartData}
                             cx="50%" 
                             cy="50%" 
-                            innerRadius={80}
-                            outerRadius={110} 
+                            innerRadius={isMobile ? 55 : 80}
+                            outerRadius={isMobile ? 80 : 110} 
                             dataKey="value" 
                             onMouseEnter={onPieEnter}
                         >
@@ -902,7 +943,7 @@ export default function DeviceDetailsPage() {
                             ))}
                         </Pie>
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Legend iconType="circle" />
+                        <Legend iconType="circle" wrapperStyle={{ fontSize: isMobile ? '11px' : '14px' }} />
                     </PieChart>
                 </ResponsiveContainer>
              ) : (
@@ -913,15 +954,15 @@ export default function DeviceDetailsPage() {
       </div>
 
        {mapLocation && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Device Location</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-lg sm:text-xl">Device Location</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-6 pt-0">
             <iframe
               width="100%"
-              height="450"
-              style={{ border: 0 }}
+              height={isMobile ? "280" : "450"}
+              style={{ border: 0, borderRadius: "0.5rem" }}
               loading="lazy"
               allowFullScreen
               src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapLocation.lng-0.05},${mapLocation.lat-0.05},${mapLocation.lng+0.05},${mapLocation.lat+0.05}&layer=mapnik&marker=${mapLocation.lat},${mapLocation.lng}`}>
@@ -930,22 +971,23 @@ export default function DeviceDetailsPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center flex-wrap gap-2">
+      <Card className="overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
             <div>
-              <CardTitle>Filtered Data Points</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Filtered Data Points</CardTitle>
+              <CardDescription className="text-xs mt-1">
                 {deviceHistory.length > 0 
                   ? `Total ${deviceHistory.length.toLocaleString()} records found in selected range` 
                   : 'No records found'}
               </CardDescription>
             </div>
             {deviceHistory.length > 0 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between sm:justify-end gap-2 text-xs sm:text-sm text-muted-foreground">
                 <Button 
                   variant="outline" 
                   size="sm" 
+                  className="h-8 text-xs"
                   onClick={() => setTablePage(p => Math.max(1, p - 1))}
                   disabled={tablePage === 1}
                 >
@@ -955,6 +997,7 @@ export default function DeviceDetailsPage() {
                 <Button 
                   variant="outline" 
                   size="sm" 
+                  className="h-8 text-xs"
                   onClick={() => setTablePage(p => Math.min(totalPages, p + 1))}
                   disabled={tablePage >= totalPages}
                 >
@@ -964,34 +1007,34 @@ export default function DeviceDetailsPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent className="p-2 sm:p-6">
+        <CardContent className="p-0 sm:p-6 pt-0 sm:pt-0">
           <div className="max-h-[500px] overflow-y-auto overflow-x-auto w-full">
-            <Table>
+            <Table className="min-w-[480px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead className="text-center">Temp (°C)</TableHead>
-                  <TableHead className="text-center">Humidity (%)</TableHead>
-                  <TableHead className="text-center">Water (ft)</TableHead>
-                  <TableHead className="text-center">Rain (mm)</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Timestamp</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Temp (°C)</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Humidity (%)</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Water (ft)</TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">Rain (mm)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedData.length > 0 ? (
                   paginatedData.map((d, i) => (
                     <TableRow key={i}>
-                      <TableCell>
+                      <TableCell className="text-xs sm:text-sm whitespace-nowrap">
                         {formatToBDTimeWithMonth(d.timestamp)}
                       </TableCell>
-                      <TableCell className="text-center font-semibold text-amber-500">{d.temperature !== null ? d.temperature.toFixed(1) : 'N/A'}</TableCell>
-                      <TableCell className="text-center font-semibold text-purple-500">{d.humidity !== null ? d.humidity.toFixed(1) : 'N/A'}</TableCell>
-                      <TableCell className="text-center font-semibold text-sky-500">{d.water_level.toFixed(2)}</TableCell>
-                      <TableCell className="text-center font-semibold text-emerald-500">{d.rainfall.toFixed(2)}</TableCell>
+                      <TableCell className="text-center font-semibold text-amber-500 text-xs sm:text-sm">{d.temperature !== null ? d.temperature.toFixed(1) : 'N/A'}</TableCell>
+                      <TableCell className="text-center font-semibold text-purple-500 text-xs sm:text-sm">{d.humidity !== null ? d.humidity.toFixed(1) : 'N/A'}</TableCell>
+                      <TableCell className="text-center font-semibold text-sky-500 text-xs sm:text-sm">{d.water_level.toFixed(2)}</TableCell>
+                      <TableCell className="text-center font-semibold text-emerald-500 text-xs sm:text-sm">{d.rainfall.toFixed(2)}</TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">No data for the selected filter.</TableCell>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground text-xs sm:text-sm">No data for the selected filter.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -1000,12 +1043,12 @@ export default function DeviceDetailsPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-center gap-4 flex-wrap">
-        <Button onClick={downloadPDF} disabled={isPdfLoading || deviceHistory.length === 0}>
+      <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3">
+        <Button onClick={downloadPDF} disabled={isPdfLoading || deviceHistory.length === 0} className="w-full sm:w-auto">
           {isPdfLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           {isPdfLoading ? 'Generating Report...' : 'Download PDF Report'}
         </Button>
-        <Button variant="outline" onClick={downloadCSV} disabled={deviceHistory.length === 0}>
+        <Button variant="outline" onClick={downloadCSV} disabled={deviceHistory.length === 0} className="w-full sm:w-auto">
           <Download className="mr-2 h-4 w-4" />
           Download CSV (All {deviceHistory.length.toLocaleString()} Records)
         </Button>

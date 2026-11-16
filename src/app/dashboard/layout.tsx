@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full min-w-0 max-w-full overflow-x-hidden">
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center justify-between">
@@ -159,8 +159,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
-        <SidebarInset>
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+        <SidebarInset className="min-w-0 w-full max-w-full overflow-x-hidden">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 w-full max-w-full min-w-0">
             <SidebarTrigger className="md:hidden">
               <PanelLeft />
               <span className="sr-only">Toggle Menu</span>
@@ -206,9 +206,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-x-hidden container mx-auto">
+          <div className="flex-1 p-3 sm:p-4 md:p-6 w-full max-w-full overflow-x-hidden container mx-auto min-w-0">
             {children}
-          </main>
+          </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
